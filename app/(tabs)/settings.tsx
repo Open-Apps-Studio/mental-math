@@ -62,7 +62,7 @@ export default function SettingsScreen() {
             separator
             left={<Glyph palette={palette} name="lock-closed-outline" color={palette.textMuted} />}
             chevron
-            onPress={() => void Linking.openURL('https://github.com/Open-Apps-Studio/openmath').catch(() => {})}
+            onPress={() => void Linking.openURL('https://open-apps-studio.github.io/openmath/privacy/').catch(() => {})}
           />
           <Row
             palette={palette}
