@@ -1,12 +1,19 @@
 import { ColorSchemeName } from 'react-native';
 
 export type Palette = {
+  /** Grouped screen background (behind cards). */
   background: string;
+  /** Card / list surface. */
   surface: string;
+  /** Secondary surface used for inset rows, example boxes, watermarks. */
   surfaceStrong: string;
+  /** Segmented-control track background. */
+  track: string;
   text: string;
   textMuted: string;
   textFaint: string;
+  /** Hairline separator between list rows. */
+  separator: string;
   border: string;
   primary: string;
   primarySoft: string;
@@ -15,6 +22,7 @@ export type Palette = {
   warning: string;
   blue: string;
   green: string;
+  greenSoft: string;
   purple: string;
   orange: string;
 };
@@ -29,47 +37,55 @@ export const spacing = {
 
 export const radii = {
   sm: 10,
-  md: 16,
-  lg: 24,
+  md: 14,
+  lg: 18,
+  xl: 26,
   pill: 999,
 };
 
+// iOS system-grouped palette so the clone reads like a native settings/list app.
 const light: Palette = {
-  background: '#F6F9FC',
+  background: '#F2F2F7',
   surface: '#FFFFFF',
-  surfaceStrong: '#EEF4FB',
-  text: '#08111F',
-  textMuted: '#506070',
-  textFaint: '#8B97A4',
-  border: '#DFE8F2',
-  primary: '#1778F2',
-  primarySoft: '#E5F1FF',
-  success: '#16A66A',
-  danger: '#EF4444',
-  warning: '#F59E0B',
-  blue: '#1778F2',
-  green: '#18B981',
-  purple: '#8B5CF6',
-  orange: '#F97316',
+  surfaceStrong: '#EDEDF2',
+  track: '#E3E3E8',
+  text: '#000000',
+  textMuted: '#6C6C70',
+  textFaint: '#B8B8BE',
+  separator: '#D6D6DB',
+  border: '#E2E2E7',
+  primary: '#007AFF',
+  primarySoft: '#E5F0FF',
+  success: '#34C759',
+  danger: '#FF3B30',
+  warning: '#FF9500',
+  blue: '#007AFF',
+  green: '#34C759',
+  greenSoft: '#E4F8EA',
+  purple: '#AF52DE',
+  orange: '#FF9500',
 };
 
 const dark: Palette = {
-  background: '#07111F',
-  surface: '#0D1A2B',
-  surfaceStrong: '#14243A',
-  text: '#F4F8FF',
-  textMuted: '#B6C2D0',
-  textFaint: '#738198',
-  border: '#23354F',
-  primary: '#52A4FF',
-  primarySoft: '#102B4D',
-  success: '#36D399',
-  danger: '#FB7185',
-  warning: '#FBBF24',
-  blue: '#52A4FF',
-  green: '#36D399',
-  purple: '#A78BFA',
-  orange: '#FB923C',
+  background: '#000000',
+  surface: '#1C1C1E',
+  surfaceStrong: '#2C2C2E',
+  track: '#2C2C2E',
+  text: '#FFFFFF',
+  textMuted: '#98989F',
+  textFaint: '#5A5A5F',
+  separator: '#38383A',
+  border: '#38383A',
+  primary: '#0A84FF',
+  primarySoft: '#0E2942',
+  success: '#30D158',
+  danger: '#FF453A',
+  warning: '#FF9F0A',
+  blue: '#0A84FF',
+  green: '#30D158',
+  greenSoft: '#16331F',
+  purple: '#BF5AF2',
+  orange: '#FF9F0A',
 };
 
 export function getPalette(scheme: ColorSchemeName): Palette {

@@ -1,38 +1,66 @@
 import * as Haptics from 'expo-haptics';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { router, Stack } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View, useColorScheme } from 'react-native';
-import { AppButton } from '@/components/app-button';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Keypad } from '@/components/keypad';
 import { getPalette, radii, spacing } from '@/constants/theme';
-import { formatSeconds, generateQuestion, getPracticeMode, isCorrect, Question, RoundKind } from '@/lib/math';
+import {
+  Difficulty,
+  ExerciseType,
+  formatSeconds,
+  generateQuestion,
+  getExercise,
+  isCorrect,
+  Question,
+} from '@/lib/math';
+import { useScheme, useSettings } from '@/lib/settings';
+import { getPendingSession, SessionConfig } from '@/lib/trainer-store';
 import { useStats } from '@/hooks/use-stats';
 
-const ROUND_SECONDS = 60;
+const FALLBACK: SessionConfig = {
+  title: '60-Second Test',
+  statKey: 'test-60',
+  domain: 'natural',
+  exercises: ['add', 'subtract', 'multiply', 'divide'],
+  difficulty: { add: 'medium', subtract: 'medium', multiply: 'medium', divide: 'medium' },
+  kind: 'timed',
+  seconds: 60,
+};
 
 export default function SessionScreen() {
-  const params = useLocalSearchParams<{ mode?: string; kind?: RoundKind }>();
-  const palette = getPalette(useColorScheme());
-  const mode = useMemo(() => getPracticeMode(params.mode), [params.mode]);
-  const kind: RoundKind = params.kind === 'unlimited' ? 'unlimited' : 'timed';
+  const palette = getPalette(useScheme());
+  const { haptics } = useSettings();
   const { recordRound } = useStats();
-  const [question, setQuestion] = useState<Question>(() => generateQuestion(mode.id, mode.difficulty));
+  const config = useMemo(() => getPendingSession() ?? FALLBACK, []);
+
+  const next = useMemo(
+    () => () => {
+      const exercise = config.exercises[Math.floor(Math.random() * config.exercises.length)] as ExerciseType;
+      const difficulty: Difficulty = config.difficulty[exercise] ?? 'medium';
+      return generateQuestion(exercise, config.domain, difficulty);
+    },
+    [config],
+  );
+
+  const [question, setQuestion] = useState<Question>(() => next());
   const [input, setInput] = useState('');
-  const [correct, setCorrect] = useState(0);
-  const [attempted, setAttempted] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState(kind === 'timed' ? ROUND_SECONDS : 0);
+  const [solved, setSolved] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(config.kind === 'timed' ? config.seconds : 0);
   const [isFinished, setIsFinished] = useState(false);
-  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const [flash, setFlash] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const startedAt = useRef(Date.now());
-  const scoreRef = useRef({ correct: 0, attempted: 0 });
+  const solvedRef = useRef(0);
   const finishedRef = useRef(false);
 
   useEffect(() => {
-    scoreRef.current = { correct, attempted };
-  }, [attempted, correct]);
+    solvedRef.current = solved;
+  }, [solved]);
 
+  // Countdown timer (paused while the cancel dialog is open).
   useEffect(() => {
-    if (kind !== 'timed' || isFinished) return;
+    if (config.kind !== 'timed' || isFinished || confirming) return;
     const timer = setInterval(() => {
       setSecondsLeft((value) => {
         if (value <= 1) {
@@ -44,7 +72,21 @@ export default function SessionScreen() {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [isFinished, kind]);
+  }, [isFinished, confirming, config.kind]);
+
+  // Auto-advance: the instant the typed value is correct, score it and move on.
+  useEffect(() => {
+    if (isFinished || !input) return;
+    if (!isCorrect(input, question.answer)) return;
+    setSolved((value) => value + 1);
+    setFlash(true);
+    if (haptics) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+    setTimeout(() => setFlash(false), 160);
+    setInput('');
+    setQuestion(next());
+  }, [input, question, isFinished, haptics, next]);
 
   const appendKey = (key: string) => {
     if (key === '⌫') {
@@ -52,115 +94,190 @@ export default function SessionScreen() {
       return;
     }
     if (key === '.' && input.includes('.')) return;
-    setInput((value) => `${value}${key}`.slice(0, 8));
-  };
-
-  const submit = () => {
-    if (isFinished) return;
-    const ok = isCorrect(input, question.answer);
-    setAttempted((value) => value + 1);
-    setCorrect((value) => value + (ok ? 1 : 0));
-    setFeedback(ok ? 'correct' : 'wrong');
-    void Haptics.notificationAsync(ok ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error).catch(() => {});
-    setTimeout(() => setFeedback(null), 220);
-    setInput('');
-    setQuestion(generateQuestion(mode.id, mode.difficulty));
+    setInput((value) => `${value}${key}`.slice(0, 9));
   };
 
   const finishRound = () => {
     if (finishedRef.current) return;
     finishedRef.current = true;
     const elapsedSeconds = Math.max(1, Math.round((Date.now() - startedAt.current) / 1000));
-    const finalScore = scoreRef.current;
+    const count = solvedRef.current;
     setIsFinished(true);
     void recordRound({
       id: `${Date.now()}`,
-      mode: mode.id,
-      kind,
-      correct: finalScore.correct,
-      attempted: finalScore.attempted,
+      title: config.title,
+      key: config.statKey,
+      kind: config.kind,
+      correct: count,
+      attempted: count,
       elapsedSeconds,
       createdAt: new Date().toISOString(),
     });
   };
 
   const restart = () => {
+    setConfirming(false);
     startedAt.current = Date.now();
-    setQuestion(generateQuestion(mode.id, mode.difficulty));
+    setQuestion(next());
     setInput('');
-    setCorrect(0);
-    setAttempted(0);
-    setSecondsLeft(kind === 'timed' ? ROUND_SECONDS : 0);
-    setFeedback(null);
-    scoreRef.current = { correct: 0, attempted: 0 };
+    setSolved(0);
+    setSecondsLeft(config.kind === 'timed' ? config.seconds : 0);
+    setFlash(false);
+    solvedRef.current = 0;
     finishedRef.current = false;
     setIsFinished(false);
   };
 
   const elapsed = Math.max(1, Math.round((Date.now() - startedAt.current) / 1000));
-  const accuracy = attempted === 0 ? 0 : Math.round((correct / attempted) * 100);
 
   if (isFinished) {
     return (
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
-        <View style={{ borderRadius: radii.lg, padding: spacing.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, gap: spacing.md }}>
-          <Text style={{ color: palette.textMuted, fontSize: 14, fontWeight: '800' }}>{mode.title} complete</Text>
-          <Text style={{ color: palette.text, fontSize: 42, fontWeight: '900', fontVariant: ['tabular-nums'] }}>{correct}</Text>
-          <Text style={{ color: palette.textMuted, fontSize: 16 }}>correct answers • {accuracy}% accuracy</Text>
-          <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
-            <AppButton title="Again" palette={palette} onPress={restart} />
-            <AppButton title="Choose drill" palette={palette} variant="secondary" onPress={() => router.replace('/train')} />
-          </View>
+      <ScrollView style={{ backgroundColor: palette.background }} contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
+        <Stack.Screen options={{ title: 'Results', headerLeft: () => null }} />
+        <View style={{ borderRadius: radii.lg, padding: spacing.xl, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, alignItems: 'center', gap: spacing.sm }}>
+          <Text style={{ color: palette.textMuted, fontSize: 14, fontWeight: '700' }}>{config.title}</Text>
+          <Text style={{ color: palette.green, fontSize: 64, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{solved}</Text>
+          <Text style={{ color: palette.textMuted, fontSize: 16 }}>solved</Text>
         </View>
+        <Pressable
+          onPress={restart}
+          style={({ pressed }) => ({ height: 54, borderRadius: radii.pill, backgroundColor: palette.green, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}>
+          <Text style={{ color: '#FFFFFF', fontSize: 17, fontWeight: '800' }}>Play again</Text>
+        </Pressable>
+        <Pressable onPress={() => router.back()} style={({ pressed }) => ({ height: 54, borderRadius: radii.pill, backgroundColor: palette.surfaceStrong, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
+          <Text style={{ color: palette.text, fontSize: 17, fontWeight: '700' }}>Done</Text>
+        </Pressable>
       </ScrollView>
     );
   }
 
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm }}>
-        <Metric label={kind === 'timed' ? 'Time' : 'Elapsed'} value={kind === 'timed' ? formatSeconds(secondsLeft) : formatSeconds(elapsed)} palette={palette} />
-        <Metric label="Score" value={`${correct}/${attempted}`} palette={palette} />
-        <Metric label="Accuracy" value={`${accuracy}%`} palette={palette} />
-      </View>
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
+      <Stack.Screen
+        options={{
+          title: 'Round',
+          headerLeft: () => null,
+          gestureEnabled: false,
+          headerRight: () => (
+            <Ionicons name="close" size={26} color={palette.text} onPress={() => setConfirming(true)} />
+          ),
+        }}
+      />
+      <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm }}>
+          <Metric label={config.kind === 'timed' ? 'Time' : 'Elapsed'} value={config.kind === 'timed' ? formatSeconds(secondsLeft) : formatSeconds(elapsed)} palette={palette} />
+          <Metric label="Solved" value={`${solved}`} palette={palette} />
+        </View>
 
-      <View
-        style={{
-          borderRadius: radii.lg,
-          padding: spacing.xl,
-          minHeight: 235,
-          backgroundColor: feedback === 'correct' ? `${palette.success}22` : feedback === 'wrong' ? `${palette.danger}22` : palette.surface,
-          borderWidth: 1,
-          borderColor: feedback === 'correct' ? palette.success : feedback === 'wrong' ? palette.danger : palette.border,
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: spacing.md,
-        }}>
-        <Text style={{ color: palette[mode.accent], fontSize: 16, fontWeight: '900' }}>{mode.title}</Text>
-        <Text style={{ color: palette.text, fontSize: 54, fontWeight: '900', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{question.prompt}</Text>
-        <Text style={{ color: palette.textMuted, fontSize: 14 }}>Answer as fast as you can</Text>
-      </View>
+        <View
+          style={{
+            borderRadius: radii.lg,
+            padding: spacing.xl,
+            minHeight: 200,
+            backgroundColor: flash ? `${palette.success}22` : palette.surface,
+            borderWidth: 1,
+            borderColor: flash ? palette.success : palette.border,
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.md,
+          }}>
+          <Text style={{ color: palette.green, fontSize: 14, fontWeight: '700' }}>{getExercise(question.exercise).label}</Text>
+          <Text style={{ color: palette.text, fontSize: 46, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{question.prompt}</Text>
+        </View>
 
-      <View style={{ borderRadius: radii.lg, padding: spacing.md, backgroundColor: palette.surfaceStrong, minHeight: 68, justifyContent: 'center' }}>
-        <Text style={{ color: input ? palette.text : palette.textFaint, fontSize: 32, fontWeight: '900', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
-          {input || 'Type answer'}
-        </Text>
-      </View>
+        <View style={{ borderRadius: radii.lg, padding: spacing.md, backgroundColor: palette.surfaceStrong, minHeight: 64, justifyContent: 'center' }}>
+          <Text style={{ color: input ? palette.text : palette.textFaint, fontSize: 30, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+            {input || 'Type answer'}
+          </Text>
+        </View>
 
-      <Keypad palette={palette} onKey={appendKey} onSubmit={submit} />
+        <Keypad palette={palette} onKey={appendKey} />
+      </ScrollView>
 
-      <Pressable onPress={finishRound} style={{ alignSelf: 'center', padding: spacing.md }}>
-        <Text style={{ color: palette.textMuted, fontWeight: '800' }}>End round</Text>
+      <CancelDialog
+        visible={confirming}
+        palette={palette}
+        onDismiss={() => setConfirming(false)}
+        onNewRound={restart}
+        onQuit={() => {
+          setConfirming(false);
+          router.back();
+        }}
+      />
+    </View>
+  );
+}
+
+function CancelDialog({
+  visible,
+  palette,
+  onDismiss,
+  onNewRound,
+  onQuit,
+}: {
+  visible: boolean;
+  palette: ReturnType<typeof getPalette>;
+  onDismiss: () => void;
+  onNewRound: () => void;
+  onQuit: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+      <Pressable
+        onPress={onDismiss}
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg }}>
+        <Pressable
+          onPress={() => {}}
+          style={{ width: '100%', maxWidth: 340, borderRadius: radii.lg, backgroundColor: palette.surface, padding: spacing.lg, gap: spacing.md }}>
+          <Text style={{ color: palette.text, fontSize: 18, fontWeight: '800', textAlign: 'center' }}>Cancel round?</Text>
+          <Text style={{ color: palette.textMuted, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
+            Your progress will be lost. Are you sure you want to cancel the current round?
+          </Text>
+          <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+            <DialogButton label="New round" onPress={onNewRound} color={palette.green} filled palette={palette} />
+            <DialogButton label="Quit" onPress={onQuit} color={palette.danger} palette={palette} />
+            <DialogButton label="Cancel" onPress={onDismiss} color={palette.text} palette={palette} />
+          </View>
+        </Pressable>
       </Pressable>
-    </ScrollView>
+    </Modal>
+  );
+}
+
+function DialogButton({
+  label,
+  onPress,
+  color,
+  filled,
+  palette,
+}: {
+  label: string;
+  onPress: () => void;
+  color: string;
+  filled?: boolean;
+  palette: ReturnType<typeof getPalette>;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        height: 50,
+        borderRadius: radii.pill,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: filled ? color : palette.surfaceStrong,
+        opacity: pressed ? 0.75 : 1,
+      })}>
+      <Text style={{ color: filled ? '#FFFFFF' : color, fontSize: 16, fontWeight: '700' }}>{label}</Text>
+    </Pressable>
   );
 }
 
 function Metric({ label, value, palette }: { label: string; value: string; palette: ReturnType<typeof getPalette> }) {
   return (
     <View style={{ flex: 1, borderRadius: radii.md, padding: spacing.sm, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}>
-      <Text style={{ color: palette.textFaint, fontSize: 12, fontWeight: '800', textAlign: 'center' }}>{label}</Text>
-      <Text style={{ color: palette.text, fontSize: 18, fontWeight: '900', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{value}</Text>
+      <Text style={{ color: palette.textFaint, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
+      <Text style={{ color: palette.text, fontSize: 18, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{value}</Text>
     </View>
   );
 }

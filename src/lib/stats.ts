@@ -1,9 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Operation, RoundKind } from '@/lib/math';
+import { RoundKind } from '@/lib/math';
 
 export type RoundResult = {
   id: string;
-  mode: Operation;
+  /** Human label of what was practised, e.g. "Natural · Addition". */
+  title: string;
+  /** Stable key for best-score grouping (usually the domain id). */
+  key: string;
   kind: RoundKind;
   correct: number;
   attempted: number;
@@ -11,27 +14,28 @@ export type RoundResult = {
   createdAt: string;
 };
 
-export type ModeBest = {
+export type Best = {
   correct: number;
   accuracy: number;
-  elapsedSeconds: number;
   createdAt: string;
 };
 
 export type MathStats = {
   rounds: RoundResult[];
-  bestByMode: Partial<Record<Operation, ModeBest>>;
+  bestByKey: Record<string, Best>;
+  bestRun: number;
   totalCorrect: number;
   totalAttempted: number;
   streakDays: number;
   lastPracticeDate: string | null;
 };
 
-const STORAGE_KEY = 'rapid_math_stats_v1';
+const STORAGE_KEY = 'rapid_math_stats_v2';
 
 export const emptyStats: MathStats = {
   rounds: [],
-  bestByMode: {},
+  bestByKey: {},
+  bestRun: 0,
   totalCorrect: 0,
   totalAttempted: 0,
   streakDays: 0,
@@ -50,30 +54,25 @@ export async function loadStats(): Promise<MathStats> {
 
 export async function saveRound(result: RoundResult): Promise<MathStats> {
   const current = await loadStats();
-  const rounds = [result, ...current.rounds].slice(0, 150);
+  const rounds = [result, ...current.rounds].slice(0, 200);
   const totalCorrect = current.totalCorrect + result.correct;
   const totalAttempted = current.totalAttempted + result.attempted;
-  const bestByMode = { ...current.bestByMode };
-  const currentBest = bestByMode[result.mode];
-  const accuracy = result.attempted === 0 ? 0 : result.correct / result.attempted;
+  const acc = result.attempted === 0 ? 0 : result.correct / result.attempted;
 
-  if (!currentBest || result.correct > currentBest.correct || (result.correct === currentBest.correct && accuracy > currentBest.accuracy)) {
-    bestByMode[result.mode] = {
-      correct: result.correct,
-      accuracy,
-      elapsedSeconds: result.elapsedSeconds,
-      createdAt: result.createdAt,
-    };
+  const bestByKey = { ...current.bestByKey };
+  const prev = bestByKey[result.key];
+  if (!prev || result.correct > prev.correct || (result.correct === prev.correct && acc > prev.accuracy)) {
+    bestByKey[result.key] = { correct: result.correct, accuracy: acc, createdAt: result.createdAt };
   }
 
   const today = dateKey(new Date(result.createdAt));
-  const streakDays = nextStreak(current.lastPracticeDate, today, current.streakDays);
   const next: MathStats = {
     rounds,
-    bestByMode,
+    bestByKey,
+    bestRun: Math.max(current.bestRun, result.correct),
     totalCorrect,
     totalAttempted,
-    streakDays,
+    streakDays: nextStreak(current.lastPracticeDate, today, current.streakDays),
     lastPracticeDate: today,
   };
 
@@ -96,7 +95,6 @@ function dateKey(date: Date): string {
 function nextStreak(previous: string | null, today: string, current: number): number {
   if (!previous) return 1;
   if (previous === today) return Math.max(1, current);
-
   const prevDate = new Date(`${previous}T00:00:00.000Z`);
   const todayDate = new Date(`${today}T00:00:00.000Z`);
   const diffDays = Math.round((todayDate.getTime() - prevDate.getTime()) / 86_400_000);

@@ -1,28 +1,41 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { useMemo } from 'react';
-import { useColorScheme } from 'react-native';
 import { getPalette } from '@/constants/theme';
+import { useScheme } from '@/lib/settings';
 
 export default function TabsLayout() {
-  const scheme = useColorScheme();
-  const palette = useMemo(() => getPalette(scheme), [scheme]);
+  const palette = getPalette(useScheme());
 
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: palette.background },
-        headerShadowVisible: false,
-        headerTintColor: palette.text,
+        headerShown: false,
         sceneStyle: { backgroundColor: palette.background },
-        tabBarStyle: { backgroundColor: palette.surface, borderTopColor: palette.border },
-        tabBarActiveTintColor: palette.primary,
+        tabBarStyle: { backgroundColor: palette.surface, borderTopColor: palette.separator },
+        tabBarActiveTintColor: palette.blue,
         tabBarInactiveTintColor: palette.textFaint,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}>
-      <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: ({ color, size }) => <Ionicons name="flash-outline" color={color} size={size} /> }} />
-      <Tabs.Screen name="train" options={{ title: 'Train', tabBarIcon: ({ color, size }) => <Ionicons name="calculator-outline" color={color} size={size} /> }} />
-      <Tabs.Screen name="stats" options={{ title: 'Stats', tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart-outline" color={color} size={size} /> }} />
-      <Tabs.Screen name="tips" options={{ title: 'Tips', tabBarIcon: ({ color, size }) => <Ionicons name="bulb-outline" color={color} size={size} /> }} />
+      <Tabs.Screen
+        name="index"
+        options={{ title: 'Tests', tabBarIcon: ({ color, size }) => <Ionicons name="stopwatch-outline" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="trainer"
+        options={{ title: 'Trainer', tabBarIcon: ({ color, size }) => <Ionicons name="school-outline" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="knowledge"
+        options={{ title: 'Knowledge', tabBarIcon: ({ color, size }) => <Ionicons name="book-outline" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="progress"
+        options={{ title: 'Progress', tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{ title: 'Settings', tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} /> }}
+      />
     </Tabs>
   );
 }
