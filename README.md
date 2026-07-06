@@ -1,6 +1,7 @@
-# OpenMath
+# (Open Source) Mental Math
 
-OpenMath is a fast mental arithmetic trainer built with Expo and React Native.
+Mental Math is a free, open-source mental arithmetic trainer built with Expo
+and React Native, by [Open Apps Studio](https://github.com/Open-Apps-Studio).
 It is inspired by the product shape of apps like "Mental Math Games: FastMath"
 without copying their branding, screenshots, or assets.
 
@@ -16,7 +17,8 @@ Five tabs, modeled on FastMath's structure:
 - **Knowledge** – a library of mental-math tricks grouped by operation
   (addition, subtraction, multiplication, division, squares) with step-by-step
   walk-throughs, worked examples, and local favorites.
-- **Progress** – totals, accuracy, best run, daily streak, and recent rounds.
+- **Progress** – totals, accuracy, best run, daily streak, longest streak, a
+  last-7-days activity strip, and recent rounds.
 - **Settings** – light/dark/system theme, haptics & sound, about.
 
 Everything is **free** — no Pro tier, paywall, or locked content. Exercises cover
