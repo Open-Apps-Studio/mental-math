@@ -27,6 +27,7 @@ export type MathStats = {
   totalCorrect: number;
   totalAttempted: number;
   streakDays: number;
+  longestStreak: number;
   lastPracticeDate: string | null;
 };
 
@@ -39,6 +40,7 @@ export const emptyStats: MathStats = {
   totalCorrect: 0,
   totalAttempted: 0,
   streakDays: 0,
+  longestStreak: 0,
   lastPracticeDate: null,
 };
 
@@ -66,13 +68,15 @@ export async function saveRound(result: RoundResult): Promise<MathStats> {
   }
 
   const today = dateKey(new Date(result.createdAt));
+  const streakDays = nextStreak(current.lastPracticeDate, today, current.streakDays);
   const next: MathStats = {
     rounds,
     bestByKey,
     bestRun: Math.max(current.bestRun, result.correct),
     totalCorrect,
     totalAttempted,
-    streakDays: nextStreak(current.lastPracticeDate, today, current.streakDays),
+    streakDays,
+    longestStreak: Math.max(current.longestStreak ?? 0, current.streakDays, streakDays),
     lastPracticeDate: today,
   };
 
@@ -88,8 +92,40 @@ export function accuracy(correct: number, attempted: number): number {
   return attempted === 0 ? 0 : Math.round((correct / attempted) * 100);
 }
 
+/** Local-calendar day key (YYYY-MM-DD) so late-night practice counts toward the user's own day. */
 function dateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export type DayActivity = {
+  /** Two-letter weekday label, e.g. "Mo". */
+  weekday: string;
+  solved: number;
+  isToday: boolean;
+};
+
+const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const;
+
+/** Rolling 7-day window ending today, built from the retained round history. */
+export function lastSevenDays(stats: MathStats, now = Date.now()): DayActivity[] {
+  const byDay = new Map<string, number>();
+  for (const round of stats.rounds) {
+    const key = dateKey(new Date(round.createdAt));
+    byDay.set(key, (byDay.get(key) ?? 0) + round.correct);
+  }
+  const out: DayActivity[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(now - i * 86_400_000);
+    out.push({
+      weekday: WEEKDAYS[date.getDay()],
+      solved: byDay.get(dateKey(date)) ?? 0,
+      isToday: i === 0,
+    });
+  }
+  return out;
 }
 
 function nextStreak(previous: string | null, today: string, current: number): number {

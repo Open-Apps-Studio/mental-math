@@ -1,4 +1,4 @@
-// Pure exercise generation + answer checking for OpenMath.
+// Pure exercise generation + answer checking for Mental Math.
 //
 // An exercise is one operation (Addition, Squares, ...). A number domain
 // (Natural, Decimal, Money, Huge, Times tables) controls the magnitude and

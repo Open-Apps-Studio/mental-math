@@ -50,7 +50,7 @@ export default function SettingsScreen() {
         <Card palette={palette}>
           <Row
             palette={palette}
-            label="Rate OpenMath"
+            label="Rate Mental Math"
             separator
             left={<Glyph palette={palette} name="star-outline" color={palette.warning} />}
             chevron
@@ -75,7 +75,7 @@ export default function SettingsScreen() {
       </View>
 
       <Text style={{ color: palette.textFaint, fontSize: 12, textAlign: 'center', marginTop: spacing.sm }}>
-        OpenMath · Made for fast mental arithmetic
+        Mental Math · Free & open source, by Open Apps Studio
       </Text>
     </Screen>
   );
