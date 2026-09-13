@@ -188,7 +188,16 @@ function fmt(n: number, domain: NumberDomain): string {
 }
 
 function round2(n: number): number {
-  return Math.round(n * 100) / 100;
+  // Math.round(n * 100) alone mis-rounds ties like 0.15 * 1.5 = 0.225, which
+  // binary floats store as 0.224999999999999982... -- it rounds DOWN to 0.22
+  // instead of the 0.23 a person gets by hand. Money-domain percent questions
+  // hit this constantly because their base always ends in exactly .50 (see
+  // generateQuestion 'percent'), so ties are common, not rare. A tiny nudge
+  // toward the intended tie-breaking direction fixes it without touching any
+  // non-tie case -- it's 100,000x smaller than the 0.005 tolerance isCorrect()
+  // already allows.
+  const nudge = n < 0 ? -1e-9 : 1e-9;
+  return Math.round(n * 100 + nudge) / 100;
 }
 
 function randInt(min: number, max: number): number {
