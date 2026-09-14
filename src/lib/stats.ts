@@ -44,18 +44,68 @@ export const emptyStats: MathStats = {
   lastPracticeDate: null,
 };
 
-export async function loadStats(): Promise<MathStats> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  if (!raw) return emptyStats;
+let state: MathStats = emptyStats;
+let hydrated = false;
+const listeners = new Set<() => void>();
+
+function emit() {
+  listeners.forEach((l) => l());
+}
+
+export function subscribeStats(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function getStats(): MathStats {
+  return state;
+}
+
+export function currentStreakDays(lastPracticeDate: string | null, streakDays: number, now = new Date()): number {
+  if (!lastPracticeDate || streakDays === 0) return 0;
+  const today = dateKey(now);
+  if (lastPracticeDate === today) return streakDays;
+  const prevDate = new Date(`${lastPracticeDate}T00:00:00.000Z`);
+  const todayDate = new Date(`${today}T00:00:00.000Z`);
+  const diffDays = Math.round((todayDate.getTime() - prevDate.getTime()) / 86_400_000);
+  return diffDays === 1 ? streakDays : 0;
+}
+
+export async function hydrateStats(): Promise<MathStats> {
   try {
-    return { ...emptyStats, ...JSON.parse(raw) };
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const activeStreak = currentStreakDays(parsed.lastPracticeDate, parsed.streakDays ?? 0);
+      state = {
+        ...emptyStats,
+        ...parsed,
+        streakDays: activeStreak,
+        longestStreak: Math.max(parsed.longestStreak ?? 0, parsed.streakDays ?? 0, activeStreak),
+      };
+    } else {
+      state = emptyStats;
+    }
   } catch {
-    return emptyStats;
+    state = emptyStats;
   }
+  hydrated = true;
+  emit();
+  return state;
+}
+
+export async function loadStats(): Promise<MathStats> {
+  if (!hydrated) {
+    return hydrateStats();
+  }
+  return state;
 }
 
 export async function saveRound(result: RoundResult): Promise<MathStats> {
-  const current = await loadStats();
+  if (!hydrated) {
+    await hydrateStats();
+  }
+  const current = state;
   const rounds = [result, ...current.rounds].slice(0, 200);
   const totalCorrect = current.totalCorrect + result.correct;
   const totalAttempted = current.totalAttempted + result.attempted;
@@ -68,7 +118,8 @@ export async function saveRound(result: RoundResult): Promise<MathStats> {
   }
 
   const today = dateKey(new Date(result.createdAt));
-  const streakDays = nextStreak(current.lastPracticeDate, today, current.streakDays);
+  const activeStreak = currentStreakDays(current.lastPracticeDate, current.streakDays, new Date(result.createdAt));
+  const streakDays = nextStreak(current.lastPracticeDate, today, activeStreak);
   const next: MathStats = {
     rounds,
     bestByKey,
@@ -80,12 +131,16 @@ export async function saveRound(result: RoundResult): Promise<MathStats> {
     lastPracticeDate: today,
   };
 
+  state = next;
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  emit();
   return next;
 }
 
 export async function resetStats(): Promise<void> {
+  state = emptyStats;
   await AsyncStorage.removeItem(STORAGE_KEY);
+  emit();
 }
 
 export function accuracy(correct: number, attempted: number): number {
@@ -117,8 +172,9 @@ export function lastSevenDays(stats: MathStats, now = Date.now()): DayActivity[]
     byDay.set(key, (byDay.get(key) ?? 0) + round.correct);
   }
   const out: DayActivity[] = [];
+  const base = new Date(now);
   for (let i = 6; i >= 0; i--) {
-    const date = new Date(now - i * 86_400_000);
+    const date = new Date(base.getFullYear(), base.getMonth(), base.getDate() - i);
     out.push({
       weekday: WEEKDAYS[date.getDay()],
       solved: byDay.get(dateKey(date)) ?? 0,

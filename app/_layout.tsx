@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { getPalette } from '@/constants/theme';
 import { hydrateFavorites } from '@/lib/favorites';
 import { hydrateSettings, useScheme } from '@/lib/settings';
+import { hydrateStats } from '@/lib/stats';
 
 export default function RootLayout() {
   const scheme = useScheme();
@@ -13,6 +14,7 @@ export default function RootLayout() {
   useEffect(() => {
     void hydrateSettings();
     void hydrateFavorites();
+    void hydrateStats();
   }, []);
 
   const theme = useMemo(
