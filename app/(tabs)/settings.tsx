@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import * as StoreReview from 'expo-store-review';
 import { Linking, Switch, Text, View } from 'react-native';
 import { Screen } from '@/components/screen';
@@ -10,6 +11,7 @@ import { setSetting, ThemePref, useScheme, useSettings } from '@/lib/settings';
 export default function SettingsScreen() {
   const palette = getPalette(useScheme());
   const settings = useSettings();
+  const version = Constants.expoConfig?.version ?? '1.0.2';
 
   return (
     <Screen palette={palette} title="Settings">
@@ -69,7 +71,7 @@ export default function SettingsScreen() {
             label="Version"
             separator={false}
             left={<Glyph palette={palette} name="information-circle-outline" color={palette.textMuted} />}
-            right={<Text style={{ color: palette.textMuted, fontSize: 15 }}>1.0.0</Text>}
+            right={<Text style={{ color: palette.textMuted, fontSize: 15 }}>{version}</Text>}
           />
         </Card>
       </View>
