@@ -146,7 +146,9 @@ export function generateQuestion(
 export function isCorrect(input: string, answer: number): boolean {
   const trimmed = input.trim();
   if (!trimmed) return false;
-  const value = Number(trimmed);
+  if (trimmed.endsWith('.') || trimmed.endsWith(',')) return false;
+  const normalized = trimmed.replace(/^\$/, '').replace(',', '.');
+  const value = Number(normalized);
   if (!Number.isFinite(value)) return false;
   return Math.abs(value - answer) < 0.005;
 }
