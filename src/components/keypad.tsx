@@ -1,11 +1,20 @@
 import { Pressable, Text, View } from 'react-native';
 import { Palette, radii, spacing } from '@/constants/theme';
 
+const decimalSeparator = (() => {
+  try {
+    const sep = (1.1).toLocaleString().substring(1, 2);
+    return sep === ',' ? ',' : '.';
+  } catch {
+    return '.';
+  }
+})();
+
 const keyRows = [
   ['1', '2', '3'],
   ['4', '5', '6'],
   ['7', '8', '9'],
-  ['.', '0', '⌫'],
+  [decimalSeparator, '0', '⌫'],
 ];
 
 type Props = {

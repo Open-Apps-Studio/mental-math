@@ -93,7 +93,8 @@ export default function SessionScreen() {
       setInput((value) => value.slice(0, -1));
       return;
     }
-    if (key === '.' && input.includes('.')) return;
+    if ((key === '.' || key === ',') && (input.includes('.') || input.includes(','))) return;
+    if (key === '-' && (input.length > 0 || input.includes('-'))) return;
     setInput((value) => `${value}${key}`.slice(0, 9));
   };
 
