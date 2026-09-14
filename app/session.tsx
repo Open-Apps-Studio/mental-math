@@ -1,8 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Keypad } from '@/components/keypad';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import {
@@ -47,10 +47,13 @@ export default function SessionScreen() {
   const [input, setInput] = useState('');
   const [solved, setSolved] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(config.kind === 'timed' ? config.seconds : 0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [flash, setFlash] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const startedAt = useRef(Date.now());
+  const pausedTotalMs = useRef(0);
+  const pauseStart = useRef<number | null>(null);
   const solvedRef = useRef(0);
   const finishedRef = useRef(false);
 
@@ -58,21 +61,87 @@ export default function SessionScreen() {
     solvedRef.current = solved;
   }, [solved]);
 
-  // Countdown timer (paused while the cancel dialog is open).
+  const getEffectiveElapsedMs = useCallback(() => {
+    const now = Date.now();
+    let paused = pausedTotalMs.current;
+    if (pauseStart.current !== null) {
+      paused += now - pauseStart.current;
+    }
+    return Math.max(0, now - startedAt.current - paused);
+  }, []);
+
+  const finishRound = useCallback(() => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    const effectiveElapsed = Math.max(1, Math.round(getEffectiveElapsedMs() / 1000));
+    const finalElapsed = config.kind === 'timed' ? Math.min(config.seconds, effectiveElapsed) : effectiveElapsed;
+    const count = solvedRef.current;
+    setIsFinished(true);
+    void recordRound({
+      id: `${Date.now()}`,
+      title: config.title,
+      key: config.statKey,
+      kind: config.kind,
+      correct: count,
+      attempted: count,
+      elapsedSeconds: finalElapsed,
+      createdAt: new Date().toISOString(),
+    });
+  }, [config, getEffectiveElapsedMs, recordRound]);
+
+  const openConfirm = () => {
+    pauseStart.current = Date.now();
+    setConfirming(true);
+  };
+
+  const closeConfirm = () => {
+    if (pauseStart.current !== null) {
+      pausedTotalMs.current += Date.now() - pauseStart.current;
+      pauseStart.current = null;
+    }
+    setConfirming(false);
+  };
+
+  // Timer loop for both timed countdown and untimed elapsed time.
   useEffect(() => {
-    if (config.kind !== 'timed' || isFinished || confirming) return;
-    const timer = setInterval(() => {
-      setSecondsLeft((value) => {
-        if (value <= 1) {
-          clearInterval(timer);
+    if (isFinished || confirming) return;
+
+    const tick = () => {
+      const elapsedMs = getEffectiveElapsedMs();
+      if (config.kind === 'timed') {
+        const remaining = Math.max(0, Math.ceil((config.seconds * 1000 - elapsedMs) / 1000));
+        setSecondsLeft(remaining);
+        if (remaining <= 0) {
           finishRound();
-          return 0;
         }
-        return value - 1;
-      });
-    }, 1000);
+      } else {
+        setElapsedSeconds(Math.max(1, Math.floor(elapsedMs / 1000)));
+      }
+    };
+
+    tick();
+    const timer = setInterval(tick, 500);
     return () => clearInterval(timer);
-  }, [isFinished, confirming, config.kind]);
+  }, [isFinished, confirming, config.kind, config.seconds, getEffectiveElapsedMs, finishRound]);
+
+  // AppState listener: update timer immediately on app resume from background.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && !finishedRef.current && !confirming) {
+        const elapsedMs = getEffectiveElapsedMs();
+        if (config.kind === 'timed') {
+          const remaining = Math.max(0, Math.ceil((config.seconds * 1000 - elapsedMs) / 1000));
+          setSecondsLeft(remaining);
+          if (remaining <= 0) {
+            finishRound();
+          }
+        } else {
+          setElapsedSeconds(Math.max(1, Math.floor(elapsedMs / 1000)));
+        }
+      }
+    });
+    return () => sub.remove();
+  }, [confirming, config.kind, config.seconds, finishRound, getEffectiveElapsedMs]);
 
   // Auto-advance: the instant the typed value is correct, score it and move on.
   useEffect(() => {
@@ -98,38 +167,21 @@ export default function SessionScreen() {
     setInput((value) => `${value}${key}`.slice(0, 9));
   };
 
-  const finishRound = () => {
-    if (finishedRef.current) return;
-    finishedRef.current = true;
-    const elapsedSeconds = Math.max(1, Math.round((Date.now() - startedAt.current) / 1000));
-    const count = solvedRef.current;
-    setIsFinished(true);
-    void recordRound({
-      id: `${Date.now()}`,
-      title: config.title,
-      key: config.statKey,
-      kind: config.kind,
-      correct: count,
-      attempted: count,
-      elapsedSeconds,
-      createdAt: new Date().toISOString(),
-    });
-  };
-
   const restart = () => {
-    setConfirming(false);
     startedAt.current = Date.now();
+    pausedTotalMs.current = 0;
+    pauseStart.current = null;
+    setConfirming(false);
     setQuestion(next());
     setInput('');
     setSolved(0);
     setSecondsLeft(config.kind === 'timed' ? config.seconds : 0);
+    setElapsedSeconds(0);
     setFlash(false);
     solvedRef.current = 0;
     finishedRef.current = false;
     setIsFinished(false);
   };
-
-  const elapsed = Math.max(1, Math.round((Date.now() - startedAt.current) / 1000));
 
   if (isFinished) {
     return (
@@ -160,13 +212,13 @@ export default function SessionScreen() {
           headerLeft: () => null,
           gestureEnabled: false,
           headerRight: () => (
-            <Ionicons name="close" size={26} color={palette.text} onPress={() => setConfirming(true)} />
+            <Ionicons name="close" size={26} color={palette.text} onPress={openConfirm} />
           ),
         }}
       />
       <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm }}>
-          <Metric label={config.kind === 'timed' ? 'Time' : 'Elapsed'} value={config.kind === 'timed' ? formatSeconds(secondsLeft) : formatSeconds(elapsed)} palette={palette} />
+          <Metric label={config.kind === 'timed' ? 'Time' : 'Elapsed'} value={config.kind === 'timed' ? formatSeconds(secondsLeft) : formatSeconds(elapsedSeconds)} palette={palette} />
           <Metric label="Solved" value={`${solved}`} palette={palette} />
         </View>
 
@@ -198,10 +250,10 @@ export default function SessionScreen() {
       <CancelDialog
         visible={confirming}
         palette={palette}
-        onDismiss={() => setConfirming(false)}
+        onDismiss={closeConfirm}
         onNewRound={restart}
         onQuit={() => {
-          setConfirming(false);
+          closeConfirm();
           router.back();
         }}
       />
