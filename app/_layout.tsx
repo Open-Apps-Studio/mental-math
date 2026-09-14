@@ -46,9 +46,9 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: palette.background },
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="exercises/[domain]" />
+        <Stack.Screen name="exercises/[domain]" getId={({ params }) => params?.domain} />
         <Stack.Screen name="difficulty" options={{ title: 'Difficulty' }} />
-        <Stack.Screen name="tricks/[category]" />
+        <Stack.Screen name="tricks/[category]" getId={({ params }) => params?.category} />
         <Stack.Screen name="trick" />
         <Stack.Screen name="session" options={{ title: 'Round' }} />
       </Stack>

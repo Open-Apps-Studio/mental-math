@@ -410,7 +410,11 @@ export function getCategory(id: string | undefined): TrickCategory | undefined {
 }
 
 export function getTrick(categoryId: string | undefined, trickId: string | undefined): Trick | undefined {
-  return getCategory(categoryId)?.tricks.find((t) => t.id === trickId);
+  if (categoryId && categoryId !== 'favorites') {
+    const found = getCategory(categoryId)?.tricks.find((t) => t.id === trickId);
+    if (found) return found;
+  }
+  return allTricks().find(({ trick }) => trick.id === trickId)?.trick;
 }
 
 export function allTricks(): { category: TrickCategory; trick: Trick }[] {

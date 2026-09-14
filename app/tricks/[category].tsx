@@ -55,9 +55,11 @@ export default function TrickListScreen() {
         {rows.length === 0 ? (
           <Card palette={palette}>
             <View style={{ padding: spacing.lg, alignItems: 'center', gap: spacing.xs }}>
-              <Text style={{ color: palette.text, fontSize: 16, fontWeight: '600' }}>No favorites yet</Text>
+              <Text style={{ color: palette.text, fontSize: 16, fontWeight: '600' }}>
+                {isFavorites ? 'No favorites yet' : 'No tricks found'}
+              </Text>
               <Text style={{ color: palette.textMuted, fontSize: 14, textAlign: 'center' }}>
-                Open any trick and tap the star to save it here.
+                {isFavorites ? 'Open any trick and tap the star to save it here.' : 'No tricks available in this category.'}
               </Text>
             </View>
           </Card>
