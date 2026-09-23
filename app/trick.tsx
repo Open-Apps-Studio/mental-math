@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Card, GroupLabel } from '@/components/list';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import { getTrick } from '@/data/knowledge';
 import { toggleFavorite, useFavorites } from '@/lib/favorites';
 import { useScheme } from '@/lib/settings';
+import { startSession } from '@/lib/trainer-store';
+import { exerciseForCategory, trickDrill } from '@/lib/trick-drills';
 
 export default function TrickScreen() {
   const palette = getPalette(useScheme());
@@ -100,6 +102,37 @@ export default function TrickScreen() {
           <Text style={{ color: palette.text, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{trick.example}</Text>
         </View>
       </View>
+
+      {trickDrill(trick.id) && (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            startSession({
+              title: trick.title,
+              statKey: `trick-${trick.id}`,
+              domain: 'natural',
+              exercises: [exerciseForCategory(category ?? '')],
+              difficulty: {},
+              kind: 'timed',
+              seconds: 60,
+              trickId: trick.id,
+            });
+            router.push('/session');
+          }}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.sm,
+            borderRadius: radii.lg,
+            backgroundColor: palette.green,
+            paddingVertical: spacing.md,
+            opacity: pressed ? 0.85 : 1,
+          })}>
+          <Ionicons name="play" size={18} color="#FFFFFF" />
+          <Text style={{ color: '#FFFFFF', fontSize: 17, fontWeight: '800' }}>Practice this trick · 60s</Text>
+        </Pressable>
+      )}
     </ScrollView>
   );
 }

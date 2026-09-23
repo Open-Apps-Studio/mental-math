@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Keypad } from '@/components/keypad';
+import { trickDrill } from '@/lib/trick-drills';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import {
   Difficulty,
@@ -38,6 +39,8 @@ export default function SessionScreen() {
 
   const next = useMemo(
     () => () => {
+      const drill = trickDrill(config.trickId);
+      if (drill) return drill();
       const exercises = config.exercises.length > 0 ? config.exercises : FALLBACK.exercises;
       const exercise = exercises[Math.floor(Math.random() * exercises.length)] as ExerciseType;
       const difficulty: Difficulty = config.difficulty[exercise] ?? 'medium';

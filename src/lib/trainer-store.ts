@@ -14,6 +14,8 @@ export type SessionConfig = {
   difficulty: Record<string, Difficulty>;
   kind: 'timed' | 'unlimited';
   seconds: number;
+  /** When set, questions come from this Knowledge trick's drill instead. */
+  trickId?: string;
 };
 
 type Selection = {

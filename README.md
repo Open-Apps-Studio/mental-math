@@ -9,12 +9,12 @@ without copying their branding, screenshots, or assets.
 
 Five tabs, modeled on FastMath's structure:
 
-- **Tests** – a daily 60-second challenge plus preset timed tests (sprints,
+- **Tests** – a daily 60-second challenge plus preset timed tests (sprints,, at any of four difficulty levels, plus a Magic Square number puzzle.
   marathon, per-operation, hard mixed) that track best scores.
 - **Trainer** – Standard/Custom modes. Pick a number domain (Times tables,
   Natural, Decimal, Money, Huge), select one or more exercises, set per-exercise
   difficulty (Easy → Super hard) via the signal-bar indicator, then START.
-- **Knowledge** – a library of mental-math tricks grouped by operation
+- **Knowledge** – a library of mental-math tricks grouped by operation; every trick has a 60-second drill that practices exactly that trick.
   (addition, subtraction, multiplication, division, squares) with step-by-step
   walk-throughs, worked examples, and local favorites.
 - **Progress** – totals, accuracy, best run, daily streak, longest streak, a

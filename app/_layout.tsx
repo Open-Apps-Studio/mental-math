@@ -59,6 +59,7 @@ export default function RootLayout() {
         <Stack.Screen name="tricks/[category]" getId={({ params }) => params?.category} />
         <Stack.Screen name="trick" />
         <Stack.Screen name="session" options={{ title: 'Round' }} />
+        <Stack.Screen name="magic-square" options={{ title: 'Magic Square' }} />
       </Stack>
     </ThemeProvider>
   );

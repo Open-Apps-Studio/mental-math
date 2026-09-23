@@ -165,6 +165,11 @@ export function formatSeconds(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+/** Build a question outside the domain generators (used by trick drills). */
+export function makeQuestion(prompt: string, answer: number, exercise: ExerciseType, decimal = false): Question {
+  return build(prompt, answer, exercise, decimal ? 'decimal' : 'natural');
+}
+
 // --- helpers -------------------------------------------------------------
 
 function build(prompt: string, rawAnswer: number, exercise: ExerciseType, domain: NumberDomain): Question {
