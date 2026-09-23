@@ -19,7 +19,7 @@ Five tabs, modeled on FastMath's structure:
   walk-throughs, worked examples, and local favorites.
 - **Progress** – totals, accuracy, best run, daily streak, longest streak, a
   last-7-days activity strip, and recent rounds.
-- **Settings** – light/dark/system theme, haptics & sound, about.
+- **Settings** – light/dark/system theme, haptics, about.
 
 Everything is **free** — no Pro tier, paywall, or locked content. Exercises cover
 addition, subtraction, multiplication, division, squares, square roots,

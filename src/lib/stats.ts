@@ -77,14 +77,26 @@ export async function hydrateStats(): Promise<MathStats> {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        const activeStreak = currentStreakDays(parsed.lastPracticeDate, parsed.streakDays ?? 0);
+        const activeStreak = currentStreakDays(parsed.lastPracticeDate, Number.isFinite(parsed.streakDays) ? parsed.streakDays : 0);
+        const parsedLongest = Number(parsed.longestStreak);
+        const parsedStreak = Number(parsed.streakDays);
+        const parsedBestRun = Number(parsed.bestRun);
+        const parsedTotalCorrect = Number(parsed.totalCorrect);
+        const parsedTotalAttempted = Number(parsed.totalAttempted);
         state = {
           ...emptyStats,
           ...parsed,
           rounds: Array.isArray(parsed.rounds) ? parsed.rounds : [],
           bestByKey: parsed.bestByKey && typeof parsed.bestByKey === 'object' ? parsed.bestByKey : {},
+          bestRun: Number.isFinite(parsedBestRun) ? Math.max(0, parsedBestRun) : 0,
+          totalCorrect: Number.isFinite(parsedTotalCorrect) ? Math.max(0, parsedTotalCorrect) : 0,
+          totalAttempted: Number.isFinite(parsedTotalAttempted) ? Math.max(0, parsedTotalAttempted) : 0,
           streakDays: activeStreak,
-          longestStreak: Math.max(parsed.longestStreak ?? 0, parsed.streakDays ?? 0, activeStreak),
+          longestStreak: Math.max(
+            Number.isFinite(parsedLongest) ? parsedLongest : 0,
+            Number.isFinite(parsedStreak) ? parsedStreak : 0,
+            activeStreak,
+          ),
         };
       }
     } else if (!hydrated) {
@@ -117,8 +129,8 @@ export async function saveRound(result: RoundResult): Promise<MathStats> {
   const safeResult: RoundResult = { ...result, correct: safeCorrect, attempted: safeAttempted };
 
   const rounds = [safeResult, ...current.rounds].slice(0, 200);
-  const totalCorrect = current.totalCorrect + safeResult.correct;
-  const totalAttempted = current.totalAttempted + safeResult.attempted;
+  const totalCorrect = (Number.isFinite(current.totalCorrect) ? current.totalCorrect : 0) + safeResult.correct;
+  const totalAttempted = (Number.isFinite(current.totalAttempted) ? current.totalAttempted : 0) + safeResult.attempted;
   const acc = safeResult.attempted === 0 ? 0 : safeResult.correct / safeResult.attempted;
 
   const bestByKey = { ...current.bestByKey };
@@ -133,11 +145,15 @@ export async function saveRound(result: RoundResult): Promise<MathStats> {
   const next: MathStats = {
     rounds,
     bestByKey,
-    bestRun: Math.max(current.bestRun, safeResult.correct),
+    bestRun: Math.max(Number.isFinite(current.bestRun) ? current.bestRun : 0, safeResult.correct),
     totalCorrect,
     totalAttempted,
     streakDays,
-    longestStreak: Math.max(current.longestStreak ?? 0, current.streakDays, streakDays),
+    longestStreak: Math.max(
+      Number.isFinite(current.longestStreak) ? current.longestStreak : 0,
+      Number.isFinite(current.streakDays) ? current.streakDays : 0,
+      streakDays,
+    ),
     lastPracticeDate: today,
   };
 
@@ -162,7 +178,8 @@ export async function resetStats(): Promise<void> {
 }
 
 export function accuracy(correct: number, attempted: number): number {
-  return attempted === 0 ? 0 : Math.round((correct / attempted) * 100);
+  if (!Number.isFinite(correct) || !Number.isFinite(attempted) || attempted <= 0) return 0;
+  return Math.round((Math.max(0, correct) / attempted) * 100);
 }
 
 /** Local-calendar day key (YYYY-MM-DD) so late-night practice counts toward the user's own day. */

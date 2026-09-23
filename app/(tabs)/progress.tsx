@@ -12,7 +12,7 @@ export default function ProgressScreen() {
   const { stats, clear } = useStats();
   const recent = stats.rounds.slice(0, 10);
   const week = lastSevenDays(stats);
-  const longestStreak = Math.max(stats.longestStreak ?? 0, stats.streakDays);
+  const longestStreak = Math.max(stats.longestStreak ?? 0, stats.streakDays ?? 0);
 
   const confirmReset = () => {
     Alert.alert('Reset progress?', 'This clears your local round history, streak, and best scores on this device.', [
@@ -24,10 +24,10 @@ export default function ProgressScreen() {
   return (
     <Screen palette={palette} title="Progress">
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-        <StatCard label="Solved" value={`${stats.totalCorrect}`} palette={palette} tone="green" />
+        <StatCard label="Solved" value={`${stats.totalCorrect ?? 0}`} palette={palette} tone="green" />
         <StatCard label="Accuracy" value={`${accuracy(stats.totalCorrect, stats.totalAttempted)}%`} palette={palette} tone="blue" />
-        <StatCard label="Best run" value={`${stats.bestRun}`} palette={palette} tone="purple" />
-        <StatCard label="Streak" value={`${stats.streakDays}d`} palette={palette} tone="orange" />
+        <StatCard label="Best run" value={`${stats.bestRun ?? 0}`} palette={palette} tone="purple" />
+        <StatCard label="Streak" value={`${stats.streakDays ?? 0}d`} palette={palette} tone="orange" />
       </View>
 
       <View>
@@ -53,9 +53,10 @@ export default function ProgressScreen() {
                   </Text>
                   <View
                     style={{
-                      width: 26,
+                      minWidth: 26,
                       height: 26,
                       borderRadius: 13,
+                      paddingHorizontal: 2,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: active ? `${palette.green}33` : palette.surfaceStrong,

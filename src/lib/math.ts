@@ -82,34 +82,36 @@ export function generateQuestion(
   domain: NumberDomain,
   difficulty: Difficulty,
 ): Question {
-  const [lo, hi] = RANGES[domain][difficulty];
-  const money = domain === 'money';
-  const decimal = domain === 'decimal' || money;
+  const safeDomain: NumberDomain = RANGES[domain] ? domain : 'natural';
+  const safeDifficulty: Difficulty = RANGES[safeDomain]?.[difficulty] ? difficulty : 'medium';
+  const [lo, hi] = RANGES[safeDomain][safeDifficulty];
+  const money = safeDomain === 'money';
+  const decimal = safeDomain === 'decimal' || money;
 
   switch (exercise) {
     case 'add': {
-      const a = operand(domain, lo, hi);
-      const b = operand(domain, lo, hi);
-      return build(`${fmt(a, domain)} + ${fmt(b, domain)}`, a + b, exercise, domain);
+      const a = operand(safeDomain, lo, hi);
+      const b = operand(safeDomain, lo, hi);
+      return build(`${fmt(a, safeDomain)} + ${fmt(b, safeDomain)}`, a + b, exercise, safeDomain);
     }
     case 'subtract': {
-      let a = operand(domain, lo, hi);
-      let b = operand(domain, lo, hi);
+      let a = operand(safeDomain, lo, hi);
+      let b = operand(safeDomain, lo, hi);
       if (b > a) [a, b] = [b, a];
-      return build(`${fmt(a, domain)} − ${fmt(b, domain)}`, a - b, exercise, domain);
+      return build(`${fmt(a, safeDomain)} − ${fmt(b, safeDomain)}`, a - b, exercise, safeDomain);
     }
     case 'multiply': {
       // Keep the second factor small so products stay mental-mathable.
-      const a = operand(domain, lo, hi);
-      const b = domain === 'times' ? randInt(lo, hi) : randInt(2, decimal ? 9 : Math.min(12, hi));
-      return build(`${fmt(a, domain)} × ${b}`, a * b, exercise, domain);
+      const a = operand(safeDomain, lo, hi);
+      const b = safeDomain === 'times' ? randInt(lo, hi) : randInt(2, decimal ? 9 : Math.min(12, hi));
+      return build(`${fmt(a, safeDomain)} × ${b}`, a * b, exercise, safeDomain);
     }
     case 'divide': {
       // Generate from the answer so quotients are clean.
-      const divisor = randInt(2, domain === 'times' ? hi : 12);
-      const quotient = operand(domain, lo, hi);
+      const divisor = randInt(2, safeDomain === 'times' ? hi : 12);
+      const quotient = operand(safeDomain, lo, hi);
       const dividend = round2(divisor * quotient);
-      return build(`${fmt(dividend, domain)} ÷ ${divisor}`, quotient, exercise, domain);
+      return build(`${fmt(dividend, safeDomain)} ÷ ${divisor}`, quotient, exercise, safeDomain);
     }
     case 'square': {
       const base = Math.max(2, Math.round(Math.sqrt(hi)));
@@ -134,13 +136,15 @@ export function generateQuestion(
       const percent = pick([5, 10, 15, 20, 25, 40, 50, 75]);
       const base = money ? round2(randInt(lo, hi) + 0.5) : pick([20, 40, 60, 80, 120, 160, 200, 400]);
       const result = round2((percent / 100) * base);
-      return build(`${percent}% of ${fmt(base, domain)}`, result, 'percent', domain);
+      return build(`${percent}% of ${fmt(base, safeDomain)}`, result, 'percent', safeDomain);
     }
     case 'modulo': {
       const a = randInt(lo, hi);
       const b = randInt(2, 9);
       return build(`${a} mod ${b}`, a % b, 'modulo', 'natural');
     }
+    default:
+      return build('1 + 1', 2, 'add', 'natural');
   }
 }
 
@@ -155,7 +159,7 @@ export function isCorrect(input: string, answer: number): boolean {
 }
 
 export function formatSeconds(seconds: number): string {
-  const safe = Math.max(0, Math.floor(seconds));
+  const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
   const mins = Math.floor(safe / 60);
   const secs = safe % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;

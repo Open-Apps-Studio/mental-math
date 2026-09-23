@@ -158,7 +158,9 @@ export default function SessionScreen() {
   useEffect(() => {
     if (isFinished || !input) return;
     if (!isCorrect(input, question.answer)) return;
-    setSolved((value) => value + 1);
+    const nextSolved = solvedRef.current + 1;
+    solvedRef.current = nextSolved;
+    setSolved(nextSolved);
     setFlash(true);
     if (haptics) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -198,8 +200,10 @@ export default function SessionScreen() {
 
   if (isFinished) {
     return (
-      <ScrollView style={{ backgroundColor: palette.background }} contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
-        <Stack.Screen options={{ title: 'Results', headerLeft: () => null }} />
+      <ScrollView
+        style={{ backgroundColor: palette.background }}
+        contentContainerStyle={{ padding: spacing.md, paddingBottom: Math.max(spacing.md, insets.bottom + spacing.sm), gap: spacing.md }}>
+        <Stack.Screen options={{ title: 'Results', headerLeft: () => null, headerRight: () => null }} />
         <View style={{ borderRadius: radii.lg, padding: spacing.xl, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, alignItems: 'center', gap: spacing.sm }}>
           <Text style={{ color: palette.textMuted, fontSize: 14, fontWeight: '700' }}>{config.title}</Text>
           <Text style={{ color: palette.green, fontSize: 64, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{solved}</Text>
@@ -225,11 +229,17 @@ export default function SessionScreen() {
           headerLeft: () => null,
           gestureEnabled: false,
           headerRight: () => (
-            <Ionicons name="close" size={26} color={palette.text} onPress={openConfirm} />
+            <Pressable
+              onPress={openConfirm}
+              hitSlop={10}
+              accessibilityLabel="Cancel round"
+              accessibilityRole="button">
+              <Ionicons name="close" size={26} color={palette.text} />
+            </Pressable>
           ),
         }}
       />
-      <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: Math.max(spacing.md, insets.bottom + spacing.sm), gap: spacing.md }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm }}>
           <Metric label={config.kind === 'timed' ? 'Time' : 'Elapsed'} value={config.kind === 'timed' ? formatSeconds(secondsLeft) : formatSeconds(elapsedSeconds)} palette={palette} />
           <Metric label="Solved" value={`${solved}`} palette={palette} />

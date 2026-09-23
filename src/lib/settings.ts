@@ -7,7 +7,6 @@ export type ThemePref = 'system' | 'light' | 'dark';
 export type Settings = {
   theme: ThemePref;
   haptics: boolean;
-  sound: boolean;
 };
 
 const STORAGE_KEY = 'rapid_math_settings_v1';
@@ -15,7 +14,6 @@ const STORAGE_KEY = 'rapid_math_settings_v1';
 const defaults: Settings = {
   theme: 'system',
   haptics: true,
-  sound: true,
 };
 
 let state: Settings = defaults;
@@ -27,7 +25,9 @@ function emit() {
 }
 
 function persist() {
-  void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch((err) => {
+    console.warn('Failed to persist settings:', err);
+  });
 }
 
 export async function hydrateSettings(): Promise<void> {

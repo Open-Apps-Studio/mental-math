@@ -58,6 +58,9 @@ export default function ExerciseSelectScreen() {
               <Pressable
                 key={exercise.id}
                 onPress={() => toggleExercise(exercise.id)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isSelected }}
+                accessibilityLabel={exercise.label}
                 style={({ pressed }) => ({
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -76,10 +79,12 @@ export default function ExerciseSelectScreen() {
                 <Pressable
                   onPress={() => router.push({ pathname: '/difficulty', params: { exercise: exercise.id, domain: domain.id } })}
                   hitSlop={10}
-                  style={{ paddingHorizontal: 4, paddingVertical: 8 }}>
+                  accessibilityLabel={`Difficulty for ${exercise.label}, currently ${selection.difficulty[exercise.id] ?? 'medium'}`}
+                  accessibilityRole="button"
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: 4, paddingVertical: 8 }}>
                   <DifficultyBars palette={palette} level={difficultyLevel(selection.difficulty[exercise.id] ?? 'medium')} size="md" color={isSelected ? palette.green : palette.textMuted} />
+                  <Ionicons name="chevron-forward" size={16} color={palette.textFaint} />
                 </Pressable>
-                <Ionicons name="chevron-forward" size={16} color={palette.textFaint} />
               </Pressable>
             );
           })}

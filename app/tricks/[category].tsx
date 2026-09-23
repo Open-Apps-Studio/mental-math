@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Card, GroupLabel, Row } from '@/components/list';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import { allTricks, CATEGORIES, getCategory, Trick } from '@/data/knowledge';
@@ -29,12 +29,13 @@ export default function TrickListScreen() {
           title,
           headerRight: () =>
             isFavorites ? null : (
-              <Ionicons
-                name="star-outline"
-                size={22}
-                color={palette.blue}
+              <Pressable
                 onPress={() => router.push({ pathname: '/tricks/[category]', params: { category: 'favorites' } })}
-              />
+                hitSlop={10}
+                accessibilityLabel="Favorites"
+                accessibilityRole="button">
+                <Ionicons name="star-outline" size={22} color={palette.blue} />
+              </Pressable>
             ),
         }}
       />

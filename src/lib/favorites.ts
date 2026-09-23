@@ -31,7 +31,9 @@ export async function hydrateFavorites(): Promise<void> {
 
 export function toggleFavorite(id: string): void {
   ids = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
-  void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+  void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(ids)).catch((err) => {
+    console.warn('Failed to persist favorites:', err);
+  });
   emit();
 }
 

@@ -26,6 +26,8 @@ export function WatermarkCard({ palette, title, sublabel, watermark, onPress, fi
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={sublabel ? `${title}, ${sublabel}` : title}
       style={({ pressed }) => [
         {
           borderRadius: radii.lg,
@@ -54,7 +56,7 @@ export function WatermarkCard({ palette, title, sublabel, watermark, onPress, fi
         {watermark}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-        <Text style={{ color: fg, fontSize: 18, fontWeight: '700' }}>{title}</Text>
+        <Text style={{ color: fg, fontSize: 18, fontWeight: '700', flexShrink: 1 }}>{title}</Text>
         <Ionicons name="chevron-forward" size={16} color={filled ? '#FFFFFF' : palette.textFaint} />
       </View>
       {sublabel ? <Text style={{ color: subFg, fontSize: 14, marginTop: 2 }}>{sublabel}</Text> : null}

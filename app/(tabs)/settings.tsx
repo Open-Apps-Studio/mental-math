@@ -33,16 +33,9 @@ export default function SettingsScreen() {
           <Row
             palette={palette}
             label="Haptic feedback"
-            separator
+            separator={false}
             left={<Glyph palette={palette} name="phone-portrait-outline" color={palette.purple} />}
             right={<Switch value={settings.haptics} onValueChange={(v) => setSetting('haptics', v)} />}
-          />
-          <Row
-            palette={palette}
-            label="Sound effects"
-            separator={false}
-            left={<Glyph palette={palette} name="volume-high-outline" color={palette.blue} />}
-            right={<Switch value={settings.sound} onValueChange={(v) => setSetting('sound', v)} />}
           />
         </Card>
       </View>

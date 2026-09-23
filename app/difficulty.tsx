@@ -6,29 +6,30 @@ import { Card, GroupLabel, Row, SectionTitle } from '@/components/list';
 import { DifficultyBars } from '@/components/difficulty-bars';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import { getDomain } from '@/data/domains';
-import { DIFFICULTIES, Difficulty, ExerciseType, generateQuestion, Question } from '@/lib/math';
+import { DIFFICULTIES, Difficulty, ExerciseType, generateQuestion, getExercise, Question } from '@/lib/math';
 import { useScheme } from '@/lib/settings';
 import { setDifficulty, useSelection } from '@/lib/trainer-store';
 
 export default function DifficultyScreen() {
   const palette = getPalette(useScheme());
   const { exercise, domain: domainId } = useLocalSearchParams<{ exercise: ExerciseType; domain: string }>();
+  const validExercise = getExercise(exercise).id;
   const domain = getDomain(domainId);
   // Read from the reactive selection so the checkmark tracks store changes
   // (the React Compiler can't see module-level reads as dependencies).
   const selection = useSelection();
-  const current: Difficulty = selection.difficulty[exercise] ?? 'medium';
+  const current: Difficulty = selection.difficulty[validExercise] ?? 'medium';
   const [example, setExample] = useState<Question | null>(null);
 
   const roll = useCallback(() => {
-    setExample(generateQuestion(exercise, domain.id, current));
-  }, [exercise, domain.id, current]);
+    setExample(generateQuestion(validExercise, domain.id, current));
+  }, [validExercise, domain.id, current]);
 
   useEffect(() => {
     roll();
   }, [roll, current]);
 
-  const choose = (id: Difficulty) => setDifficulty(exercise, id);
+  const choose = (id: Difficulty) => setDifficulty(validExercise, id);
 
   return (
     <ScrollView style={{ backgroundColor: palette.background }} contentContainerStyle={{ padding: spacing.md, gap: spacing.sm }}>
@@ -62,7 +63,12 @@ export default function DifficultyScreen() {
           alignItems: 'center',
           gap: spacing.xs,
         }}>
-        <Pressable onPress={roll} hitSlop={12} style={{ position: 'absolute', top: spacing.md, right: spacing.md }}>
+        <Pressable
+          onPress={roll}
+          hitSlop={12}
+          accessibilityLabel="Generate new example"
+          accessibilityRole="button"
+          style={{ position: 'absolute', top: spacing.md, right: spacing.md }}>
           <Ionicons name="refresh" size={20} color={palette.blue} />
         </Pressable>
         <Text style={{ color: palette.text, fontSize: 30, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
