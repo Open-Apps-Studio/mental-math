@@ -76,18 +76,24 @@ export async function hydrateStats(): Promise<MathStats> {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      const activeStreak = currentStreakDays(parsed.lastPracticeDate, parsed.streakDays ?? 0);
-      state = {
-        ...emptyStats,
-        ...parsed,
-        streakDays: activeStreak,
-        longestStreak: Math.max(parsed.longestStreak ?? 0, parsed.streakDays ?? 0, activeStreak),
-      };
-    } else {
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const activeStreak = currentStreakDays(parsed.lastPracticeDate, parsed.streakDays ?? 0);
+        state = {
+          ...emptyStats,
+          ...parsed,
+          rounds: Array.isArray(parsed.rounds) ? parsed.rounds : [],
+          bestByKey: parsed.bestByKey && typeof parsed.bestByKey === 'object' ? parsed.bestByKey : {},
+          streakDays: activeStreak,
+          longestStreak: Math.max(parsed.longestStreak ?? 0, parsed.streakDays ?? 0, activeStreak),
+        };
+      }
+    } else if (!hydrated) {
       state = emptyStats;
     }
   } catch {
-    state = emptyStats;
+    if (!hydrated) {
+      state = emptyStats;
+    }
   }
   hydrated = true;
   emit();
@@ -106,24 +112,28 @@ export async function saveRound(result: RoundResult): Promise<MathStats> {
     await hydrateStats();
   }
   const current = state;
-  const rounds = [result, ...current.rounds].slice(0, 200);
-  const totalCorrect = current.totalCorrect + result.correct;
-  const totalAttempted = current.totalAttempted + result.attempted;
-  const acc = result.attempted === 0 ? 0 : result.correct / result.attempted;
+  const safeCorrect = Number.isFinite(result.correct) ? Math.max(0, result.correct) : 0;
+  const safeAttempted = Number.isFinite(result.attempted) ? Math.max(safeCorrect, result.attempted) : safeCorrect;
+  const safeResult: RoundResult = { ...result, correct: safeCorrect, attempted: safeAttempted };
+
+  const rounds = [safeResult, ...current.rounds].slice(0, 200);
+  const totalCorrect = current.totalCorrect + safeResult.correct;
+  const totalAttempted = current.totalAttempted + safeResult.attempted;
+  const acc = safeResult.attempted === 0 ? 0 : safeResult.correct / safeResult.attempted;
 
   const bestByKey = { ...current.bestByKey };
-  const prev = bestByKey[result.key];
-  if (!prev || result.correct > prev.correct || (result.correct === prev.correct && acc > prev.accuracy)) {
-    bestByKey[result.key] = { correct: result.correct, accuracy: acc, createdAt: result.createdAt };
+  const prev = bestByKey[safeResult.key];
+  if (!prev || safeResult.correct > prev.correct || (safeResult.correct === prev.correct && acc > prev.accuracy)) {
+    bestByKey[safeResult.key] = { correct: safeResult.correct, accuracy: acc, createdAt: safeResult.createdAt };
   }
 
-  const today = dateKey(new Date(result.createdAt));
-  const activeStreak = currentStreakDays(current.lastPracticeDate, current.streakDays, new Date(result.createdAt));
+  const today = dateKey(new Date(safeResult.createdAt));
+  const activeStreak = currentStreakDays(current.lastPracticeDate, current.streakDays, new Date(safeResult.createdAt));
   const streakDays = nextStreak(current.lastPracticeDate, today, activeStreak);
   const next: MathStats = {
     rounds,
     bestByKey,
-    bestRun: Math.max(current.bestRun, result.correct),
+    bestRun: Math.max(current.bestRun, safeResult.correct),
     totalCorrect,
     totalAttempted,
     streakDays,
@@ -132,15 +142,23 @@ export async function saveRound(result: RoundResult): Promise<MathStats> {
   };
 
   state = next;
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   emit();
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch (err) {
+    console.warn('Failed to persist stats:', err);
+  }
   return next;
 }
 
 export async function resetStats(): Promise<void> {
   state = emptyStats;
-  await AsyncStorage.removeItem(STORAGE_KEY);
   emit();
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+  } catch (err) {
+    console.warn('Failed to remove stats:', err);
+  }
 }
 
 export function accuracy(correct: number, attempted: number): number {

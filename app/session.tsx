@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Keypad } from '@/components/keypad';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import {
@@ -29,6 +30,7 @@ const FALLBACK: SessionConfig = {
 };
 
 export default function SessionScreen() {
+  const insets = useSafeAreaInsets();
   const palette = getPalette(useScheme());
   const { haptics } = useSettings();
   const { recordRound } = useStats();
@@ -36,7 +38,8 @@ export default function SessionScreen() {
 
   const next = useMemo(
     () => () => {
-      const exercise = config.exercises[Math.floor(Math.random() * config.exercises.length)] as ExerciseType;
+      const exercises = config.exercises.length > 0 ? config.exercises : FALLBACK.exercises;
+      const exercise = exercises[Math.floor(Math.random() * exercises.length)] as ExerciseType;
       const difficulty: Difficulty = config.difficulty[exercise] ?? 'medium';
       return generateQuestion(exercise, config.domain, difficulty);
     },
@@ -102,6 +105,14 @@ export default function SessionScreen() {
     setConfirming(false);
   };
 
+  const flashTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (flashTimeout.current) clearTimeout(flashTimeout.current);
+    };
+  }, []);
+
   // Timer loop for both timed countdown and untimed elapsed time.
   useEffect(() => {
     if (isFinished || confirming) return;
@@ -152,7 +163,8 @@ export default function SessionScreen() {
     if (haptics) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
-    setTimeout(() => setFlash(false), 160);
+    if (flashTimeout.current) clearTimeout(flashTimeout.current);
+    flashTimeout.current = setTimeout(() => setFlash(false), 160);
     setInput('');
     setQuestion(next());
   }, [input, question, isFinished, haptics, next]);
@@ -177,6 +189,7 @@ export default function SessionScreen() {
     setSolved(0);
     setSecondsLeft(config.kind === 'timed' ? config.seconds : 0);
     setElapsedSeconds(0);
+    if (flashTimeout.current) clearTimeout(flashTimeout.current);
     setFlash(false);
     solvedRef.current = 0;
     finishedRef.current = false;

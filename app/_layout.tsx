@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
@@ -15,6 +16,13 @@ export default function RootLayout() {
     void hydrateSettings();
     void hydrateFavorites();
     void hydrateStats();
+
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        void hydrateStats();
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   const theme = useMemo(

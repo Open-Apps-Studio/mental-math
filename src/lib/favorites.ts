@@ -21,7 +21,8 @@ function emit() {
 export async function hydrateFavorites(): Promise<void> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    ids = raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : null;
+    ids = Array.isArray(parsed) ? parsed : [];
   } catch {
     ids = [];
   }

@@ -118,7 +118,8 @@ export function generateQuestion(
     }
     case 'sqrt': {
       const base = Math.max(2, Math.round(Math.sqrt(hi)));
-      const n = randInt(2, base);
+      const minN = Math.max(2, Math.round(Math.sqrt(lo)));
+      const n = randInt(minN, Math.max(minN, base));
       return build(`√${n * n}`, n, 'sqrt', 'natural');
     }
     case 'fraction': {

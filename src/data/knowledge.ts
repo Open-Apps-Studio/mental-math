@@ -69,7 +69,7 @@ export const CATEGORIES: TrickCategory[] = [
   {
     id: 'subtraction',
     title: 'Subtraction',
-    emoji: '😎',
+    emoji: '➖',
     symbol: '−',
     blurb: 'Cool subtraction tricks',
     tricks: [
@@ -354,7 +354,7 @@ export const CATEGORIES: TrickCategory[] = [
         id: 'div-rule-11',
         title: 'Divisible by 11?',
         summary: 'Alternately add and subtract the digits.',
-        steps: ['Subtract and add digits left to right.', 'If the result is 0 or 11, it divides.'],
+        steps: ['Subtract and add digits left to right.', 'If the result is 0 or a multiple of 11 (such as 11 or −11), it divides.'],
         example: '2728 → 2−7+2−8 = −11 → yes',
       },
     ],
