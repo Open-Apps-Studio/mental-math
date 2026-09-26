@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { Segmented } from '@/components/segmented';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import { generateMagicSquare, LINES, lineSum, type MagicPuzzle } from '@/lib/magic-square';
@@ -15,6 +15,7 @@ const BEST_KEY = 'magic-square-best-v1';
 export default function MagicSquareScreen() {
   const palette = getPalette(useScheme());
   const { haptics } = useSettings();
+  const { width } = useWindowDimensions();
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [puzzle, setPuzzle] = useState<MagicPuzzle>(() => generateMagicSquare('easy'));
   const [cells, setCells] = useState<(number | null)[]>(puzzle.givens);
@@ -86,7 +87,8 @@ export default function MagicSquareScreen() {
   const sumColor = (sum: number | null) => (sum === null ? palette.textFaint : sum === puzzle.target ? palette.green : palette.danger);
   const rows = [LINES[0], LINES[1], LINES[2]];
   const cols = [LINES[3], LINES[4], LINES[5]];
-  const cellSize = 84;
+  // Fill the width on phones, but don't let the grid sprawl on iPad.
+  const cellSize = Math.round(Math.min(150, Math.max(72, (Math.min(width, 640) - 2 * spacing.md - 36 - 3 * 6) / 3)));
 
   return (
     <ScrollView style={{ backgroundColor: palette.background }} contentContainerStyle={{ padding: spacing.md, gap: spacing.lg }}>
@@ -102,8 +104,11 @@ export default function MagicSquareScreen() {
       />
 
       <View style={{ gap: 4 }}>
-        <Text style={{ color: palette.text, fontSize: 17, fontWeight: '700', textAlign: 'center' }}>
-          Make every row, column and diagonal add up to {puzzle.target}
+        <Text style={{ color: palette.textMuted, fontSize: 15, fontWeight: '600', textAlign: 'center' }}>
+          Every row, column and diagonal must add up to
+        </Text>
+        <Text style={{ color: palette.text, fontSize: 40, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+          {puzzle.target}
         </Text>
         <Text style={{ color: palette.textMuted, fontSize: 14, textAlign: 'center' }}>
           Use each number once · {formatSeconds(elapsed)}
@@ -135,7 +140,7 @@ export default function MagicSquareScreen() {
                   }}>
                   <Text
                     style={{
-                      fontSize: 32,
+                      fontSize: Math.round(cellSize * 0.4),
                       fontWeight: given ? '800' : '600',
                       color: given ? palette.text : palette.blue,
                       fontVariant: ['tabular-nums'],
