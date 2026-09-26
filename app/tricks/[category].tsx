@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, GroupLabel, Row } from '@/components/list';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import { allTricks, CATEGORIES, getCategory, Trick } from '@/data/knowledge';
@@ -8,6 +9,7 @@ import { useFavorites } from '@/lib/favorites';
 import { useScheme } from '@/lib/settings';
 
 export default function TrickListScreen() {
+  const insets = useSafeAreaInsets();
   const palette = getPalette(useScheme());
   const { category: categoryId } = useLocalSearchParams<{ category: string }>();
   const favorites = useFavorites();
@@ -23,7 +25,9 @@ export default function TrickListScreen() {
     : (getCategory(categoryId)?.tricks ?? []).map((trick) => ({ catId: categoryId!, trick }));
 
   return (
-    <ScrollView style={{ backgroundColor: palette.background }} contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
+    <ScrollView
+      style={{ backgroundColor: palette.background }}
+      contentContainerStyle={{ padding: spacing.md, paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.md), gap: spacing.md }}>
       <Stack.Screen
         options={{
           title,

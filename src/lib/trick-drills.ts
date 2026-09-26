@@ -42,7 +42,7 @@ const DRILLS: Record<string, Drill> = {
     const a = r(50, 99);
     return sub(a, r(12, a - 10));
   },
-  'sub-compatible': () => sub(r(60, 99), r(2, 8) * 10 - pick([1, 2, 3])),
+  'sub-compatible': () => sub(r(60, 99), r(2, 5) * 10 - pick([1, 2, 3])),
   'sub-compensate': () => sub(r(40, 99), r(1, 3) * 10 + 9),
   'sub-add-uniformly': () => sub(r(60, 99), r(2, 5) * 10 + pick([6, 7, 8, 9])),
   'sub-avoid-carryover': () => sub(r(5, 9) * 10 + r(0, 4), r(1, 4) * 10 + r(5, 9)),

@@ -96,6 +96,8 @@ export default function TestsScreen() {
       />
       <Pressable
         onPress={() => launch(DAILY, level)}
+        accessibilityRole="button"
+        accessibilityLabel={`Daily challenge, ${DAILY.title}, ${formatSeconds(DAILY.seconds)}, best ${best}`}
         style={({ pressed }) => ({
           borderRadius: radii.xl,
           backgroundColor: palette.green,

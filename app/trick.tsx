@@ -1,15 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, GroupLabel } from '@/components/list';
 import { getPalette, radii, spacing } from '@/constants/theme';
-import { getTrick } from '@/data/knowledge';
+import { allTricks, getTrick } from '@/data/knowledge';
 import { toggleFavorite, useFavorites } from '@/lib/favorites';
 import { useScheme } from '@/lib/settings';
 import { startSession } from '@/lib/trainer-store';
 import { exerciseForCategory, trickDrill } from '@/lib/trick-drills';
 
 export default function TrickScreen() {
+  const insets = useSafeAreaInsets();
   const palette = getPalette(useScheme());
   const { category, id } = useLocalSearchParams<{ category: string; id: string }>();
   const favorites = useFavorites();
@@ -26,7 +28,9 @@ export default function TrickScreen() {
   }
 
   return (
-    <ScrollView style={{ backgroundColor: palette.background }} contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
+    <ScrollView
+      style={{ backgroundColor: palette.background }}
+      contentContainerStyle={{ padding: spacing.md, paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.md), gap: spacing.md }}>
       <Stack.Screen
         options={{
           title: trick.title,
@@ -106,12 +110,17 @@ export default function TrickScreen() {
       {trickDrill(trick.id) && (
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={`Practice ${trick.title}, 60 seconds`}
           onPress={() => {
+            const realCategory =
+              category && category !== 'favorites'
+                ? category
+                : allTricks().find(({ trick: t }) => t.id === trick.id)?.category.id ?? '';
             startSession({
               title: trick.title,
               statKey: `trick-${trick.id}`,
               domain: 'natural',
-              exercises: [exerciseForCategory(category ?? '')],
+              exercises: [exerciseForCategory(realCategory)],
               difficulty: {},
               kind: 'timed',
               seconds: 60,

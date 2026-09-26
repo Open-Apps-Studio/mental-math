@@ -179,6 +179,7 @@ export default function SessionScreen() {
       setInput((value) => value.slice(0, -1));
       return;
     }
+    if (key === '0' && input === '0') return;
     if ((key === '.' || key === ',') && (input.includes('.') || input.includes(','))) return;
     if (key === '-' && (input.length > 0 || input.includes('-'))) return;
     setInput((value) => `${value}${key}`.slice(0, 9));
@@ -214,10 +215,22 @@ export default function SessionScreen() {
         </View>
         <Pressable
           onPress={restart}
+          accessibilityRole="button"
+          accessibilityLabel="Play again"
           style={({ pressed }) => ({ height: 54, borderRadius: radii.pill, backgroundColor: palette.green, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}>
           <Text style={{ color: '#FFFFFF', fontSize: 17, fontWeight: '800' }}>Play again</Text>
         </Pressable>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => ({ height: 54, borderRadius: radii.pill, backgroundColor: palette.surfaceStrong, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
+        <Pressable
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)');
+            }
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Done"
+          style={({ pressed }) => ({ height: 54, borderRadius: radii.pill, backgroundColor: palette.surfaceStrong, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
           <Text style={{ color: palette.text, fontSize: 17, fontWeight: '700' }}>Done</Text>
         </Pressable>
       </ScrollView>
@@ -280,7 +293,11 @@ export default function SessionScreen() {
         onNewRound={restart}
         onQuit={() => {
           closeConfirm();
-          router.back();
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)');
+          }
         }}
       />
     </View>
@@ -304,6 +321,8 @@ function CancelDialog({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable
         onPress={onDismiss}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss dialog"
         style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg }}>
         <Pressable
           onPress={() => {}}
@@ -339,6 +358,8 @@ function DialogButton({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       style={({ pressed }) => ({
         height: 50,
         borderRadius: radii.pill,
@@ -354,9 +375,12 @@ function DialogButton({
 
 function Metric({ label, value, palette }: { label: string; value: string; palette: ReturnType<typeof getPalette> }) {
   return (
-    <View style={{ flex: 1, borderRadius: radii.md, padding: spacing.sm, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}>
+    <View
+      accessible={true}
+      accessibilityLabel={`${label}: ${value}`}
+      style={{ flex: 1, borderRadius: radii.md, padding: spacing.sm, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}>
       <Text style={{ color: palette.textFaint, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
-      <Text style={{ color: palette.text, fontSize: 18, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{value}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: palette.text, fontSize: 18, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{value}</Text>
     </View>
   );
 }

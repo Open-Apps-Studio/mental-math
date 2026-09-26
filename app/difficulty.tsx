@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, GroupLabel, Row, SectionTitle } from '@/components/list';
 import { DifficultyBars } from '@/components/difficulty-bars';
 import { getPalette, radii, spacing } from '@/constants/theme';
@@ -11,6 +12,7 @@ import { useScheme } from '@/lib/settings';
 import { setDifficulty, useSelection } from '@/lib/trainer-store';
 
 export default function DifficultyScreen() {
+  const insets = useSafeAreaInsets();
   const palette = getPalette(useScheme());
   const { exercise, domain: domainId } = useLocalSearchParams<{ exercise: ExerciseType; domain: string }>();
   const validExercise = getExercise(exercise).id;
@@ -32,7 +34,9 @@ export default function DifficultyScreen() {
   const choose = (id: Difficulty) => setDifficulty(validExercise, id);
 
   return (
-    <ScrollView style={{ backgroundColor: palette.background }} contentContainerStyle={{ padding: spacing.md, gap: spacing.sm }}>
+    <ScrollView
+      style={{ backgroundColor: palette.background }}
+      contentContainerStyle={{ padding: spacing.md, paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.md), gap: spacing.sm }}>
       <Stack.Screen options={{ title: 'Difficulty' }} />
 
       <Card palette={palette}>
@@ -45,6 +49,8 @@ export default function DifficultyScreen() {
             separator={index < DIFFICULTIES.length - 1}
             left={<DifficultyBars palette={palette} level={diff.level} size="md" />}
             right={current === diff.id ? <Ionicons name="checkmark" size={20} color={palette.blue} /> : null}
+            accessibilityRole="button"
+            accessibilityState={{ selected: current === diff.id }}
           />
         ))}
       </Card>

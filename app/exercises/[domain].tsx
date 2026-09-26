@@ -54,38 +54,53 @@ export default function ExerciseSelectScreen() {
           {exercises.map((exercise, index) => {
             const isSelected = selected.includes(exercise.id);
             const last = index === exercises.length - 1;
+            const currentDiff = selection.difficulty[exercise.id] ?? 'medium';
             return (
-              <Pressable
+              <View
                 key={exercise.id}
-                onPress={() => toggleExercise(exercise.id)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: isSelected }}
-                accessibilityLabel={exercise.label}
-                style={({ pressed }) => ({
+                style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: spacing.md,
-                  paddingHorizontal: spacing.md,
                   minHeight: 54,
                   borderBottomWidth: last ? 0 : 0.5,
                   borderBottomColor: palette.separator,
                   backgroundColor: isSelected ? palette.greenSoft : 'transparent',
-                  opacity: pressed ? 0.6 : 1,
-                })}>
-                <ExerciseIcon palette={palette} symbol={exercise.symbol} />
-                <Text style={{ flex: 1, color: palette.text, fontSize: 17, fontWeight: '500' }}>{exercise.label}</Text>
-
-                {isSelected ? <Ionicons name="checkmark-circle" size={20} color={palette.green} /> : null}
+                }}>
+                <Pressable
+                  onPress={() => toggleExercise(exercise.id)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: isSelected }}
+                  accessibilityLabel={`${exercise.label}, ${isSelected ? 'selected' : 'not selected'}`}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.sm,
+                    opacity: pressed ? 0.6 : 1,
+                  })}>
+                  <ExerciseIcon palette={palette} symbol={exercise.symbol} />
+                  <Text style={{ flex: 1, color: palette.text, fontSize: 17, fontWeight: '500' }}>{exercise.label}</Text>
+                  {isSelected ? <Ionicons name="checkmark-circle" size={20} color={palette.green} /> : null}
+                </Pressable>
                 <Pressable
                   onPress={() => router.push({ pathname: '/difficulty', params: { exercise: exercise.id, domain: domain.id } })}
                   hitSlop={10}
-                  accessibilityLabel={`Difficulty for ${exercise.label}, currently ${selection.difficulty[exercise.id] ?? 'medium'}`}
+                  accessibilityLabel={`Difficulty for ${exercise.label}, currently ${currentDiff}`}
                   accessibilityRole="button"
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: 4, paddingVertical: 8 }}>
-                  <DifficultyBars palette={palette} level={difficultyLevel(selection.difficulty[exercise.id] ?? 'medium')} size="md" color={isSelected ? palette.green : palette.textMuted} />
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.md,
+                    opacity: pressed ? 0.6 : 1,
+                  })}>
+                  <DifficultyBars palette={palette} level={difficultyLevel(currentDiff)} size="md" color={isSelected ? palette.green : palette.textMuted} />
                   <Ionicons name="chevron-forward" size={16} color={palette.textFaint} />
                 </Pressable>
-              </Pressable>
+              </View>
             );
           })}
         </Card>
@@ -110,6 +125,9 @@ export default function ExerciseSelectScreen() {
         <Pressable
           onPress={launch}
           disabled={selected.length === 0}
+          accessibilityRole="button"
+          accessibilityLabel="Start round"
+          accessibilityState={{ disabled: selected.length === 0 }}
           style={({ pressed }) => ({
             height: 54,
             borderRadius: radii.pill,

@@ -49,6 +49,9 @@ type RowProps = {
   separator?: boolean;
   disabled?: boolean;
   labelColor?: string;
+  accessibilityRole?: 'button' | 'checkbox' | 'radio';
+  accessibilityState?: { checked?: boolean; selected?: boolean; disabled?: boolean };
+  accessibilityLabel?: string;
 };
 
 /** Single list row with optional leading icon, trailing content, and chevron. */
@@ -63,6 +66,9 @@ export function Row({
   separator = true,
   disabled,
   labelColor,
+  accessibilityRole,
+  accessibilityState,
+  accessibilityLabel,
 }: RowProps) {
   const content = (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, minHeight: 52 }}>
@@ -87,7 +93,13 @@ export function Row({
   if (!onPress) return inner;
 
   return (
-    <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => ({ opacity: pressed && !disabled ? 0.55 : 1 })}>
+    <Pressable
+      accessibilityRole={accessibilityRole ?? 'button'}
+      accessibilityState={accessibilityState ?? (disabled ? { disabled: true } : undefined)}
+      accessibilityLabel={accessibilityLabel ?? (sublabel ? `${label}, ${sublabel}` : label)}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({ opacity: pressed && !disabled ? 0.55 : 1 })}>
       {inner}
     </Pressable>
   );

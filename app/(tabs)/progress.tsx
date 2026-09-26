@@ -113,6 +113,8 @@ export default function ProgressScreen() {
 
       <Pressable
         onPress={confirmReset}
+        accessibilityRole="button"
+        accessibilityLabel="Reset progress"
         style={({ pressed }) => ({
           borderRadius: radii.lg,
           backgroundColor: palette.surface,

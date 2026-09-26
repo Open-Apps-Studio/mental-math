@@ -35,7 +35,7 @@ export default function SettingsScreen() {
             label="Haptic feedback"
             separator={false}
             left={<Glyph palette={palette} name="phone-portrait-outline" color={palette.purple} />}
-            right={<Switch value={settings.haptics} onValueChange={(v) => setSetting('haptics', v)} />}
+            right={<Switch value={settings.haptics} onValueChange={(v) => setSetting('haptics', v)} accessibilityLabel="Haptic feedback" />}
           />
         </Card>
       </View>

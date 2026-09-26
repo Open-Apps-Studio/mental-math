@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Segmented } from '@/components/segmented';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import { generateMagicSquare, LINES, lineSum, type MagicPuzzle } from '@/lib/magic-square';
@@ -13,13 +14,17 @@ import { useScheme, useSettings } from '@/lib/settings';
 const BEST_KEY = 'magic-square-best-v1';
 
 export default function MagicSquareScreen() {
+  const insets = useSafeAreaInsets();
   const palette = getPalette(useScheme());
   const { haptics } = useSettings();
   const { width } = useWindowDimensions();
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [puzzle, setPuzzle] = useState<MagicPuzzle>(() => generateMagicSquare('easy'));
   const [cells, setCells] = useState<(number | null)[]>(puzzle.givens);
-  const [selected, setSelected] = useState<number | null>(() => puzzle.givens.findIndex((g) => g === null));
+  const [selected, setSelected] = useState<number | null>(() => {
+    const empty = puzzle.givens.findIndex((g) => g === null);
+    return empty >= 0 ? empty : null;
+  });
   const [startedAt, setStartedAt] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
   const [best, setBest] = useState<Record<string, number>>({});
@@ -45,7 +50,8 @@ export default function MagicSquareScreen() {
     const next = generateMagicSquare(level);
     setPuzzle(next);
     setCells(next.givens);
-    setSelected(next.givens.findIndex((g) => g === null));
+    const empty = next.givens.findIndex((g) => g === null);
+    setSelected(empty >= 0 ? empty : null);
     setStartedAt(Date.now());
     setElapsed(0);
   };
@@ -57,9 +63,11 @@ export default function MagicSquareScreen() {
     setCells(next);
     // Jump to the next empty cell so filling the grid is quick.
     const after = next.findIndex((c, i) => c === null && i > selected);
-    setSelected(after >= 0 ? after : next.findIndex((c) => c === null));
+    const emptyIndex = next.findIndex((c) => c === null);
+    setSelected(after >= 0 ? after : emptyIndex >= 0 ? emptyIndex : null);
     const done = next.every((c) => c !== null) && LINES.every((line) => lineSum(next, line) === puzzle.target);
     if (done) {
+      setSelected(null);
       const seconds = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
       setElapsed(seconds);
       if (haptics) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -87,11 +95,15 @@ export default function MagicSquareScreen() {
   const sumColor = (sum: number | null) => (sum === null ? palette.textFaint : sum === puzzle.target ? palette.green : palette.danger);
   const rows = [LINES[0], LINES[1], LINES[2]];
   const cols = [LINES[3], LINES[4], LINES[5]];
+  const diagMainSum = lineSum(cells, LINES[6]);
+  const diagAntiSum = lineSum(cells, LINES[7]);
   // Fill the width on phones, but don't let the grid sprawl on iPad.
   const cellSize = Math.round(Math.min(150, Math.max(72, (Math.min(width, 640) - 2 * spacing.md - 36 - 3 * 6) / 3)));
 
   return (
-    <ScrollView style={{ backgroundColor: palette.background }} contentContainerStyle={{ padding: spacing.md, gap: spacing.lg }}>
+    <ScrollView
+      style={{ backgroundColor: palette.background }}
+      contentContainerStyle={{ padding: spacing.md, paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.md), gap: spacing.lg }}>
       <Stack.Screen options={{ title: 'Magic Square' }} />
       <Segmented<Difficulty>
         palette={palette}
@@ -128,6 +140,7 @@ export default function MagicSquareScreen() {
                   onPress={() => tapCell(index)}
                   accessibilityRole="button"
                   accessibilityLabel={`Row ${r + 1}, column ${(index % 3) + 1}, ${cells[index] ?? 'empty'}${given ? ', given' : ''}`}
+                  accessibilityState={{ disabled: given, selected: isSelected }}
                   style={{
                     width: cellSize,
                     height: cellSize,
@@ -150,17 +163,34 @@ export default function MagicSquareScreen() {
                 </Pressable>
               );
             })}
-            <Text style={{ width: 36, textAlign: 'center', fontWeight: '800', color: sumColor(lineSum(cells, line)), fontVariant: ['tabular-nums'] }}>
+            <Text
+              accessibilityLabel={`Row ${r + 1} sum: ${lineSum(cells, line) ?? 'incomplete'}`}
+              style={{ width: 36, textAlign: 'center', fontWeight: '800', color: sumColor(lineSum(cells, line)), fontVariant: ['tabular-nums'] }}>
               {lineSum(cells, line) ?? '·'}
             </Text>
           </View>
         ))}
         <View style={{ flexDirection: 'row', gap: 6 }}>
           {cols.map((line, c) => (
-            <Text key={c} style={{ width: cellSize, textAlign: 'center', fontWeight: '800', color: sumColor(lineSum(cells, line)), fontVariant: ['tabular-nums'] }}>
+            <Text
+              key={c}
+              accessibilityLabel={`Column ${c + 1} sum: ${lineSum(cells, line) ?? 'incomplete'}`}
+              style={{ width: cellSize, textAlign: 'center', fontWeight: '800', color: sumColor(lineSum(cells, line)), fontVariant: ['tabular-nums'] }}>
               {lineSum(cells, line) ?? '·'}
             </Text>
           ))}
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.xl, marginTop: spacing.xs }}>
+          <Text
+            accessibilityLabel={`Top-left to bottom-right diagonal sum: ${diagMainSum ?? 'incomplete'}`}
+            style={{ fontSize: 15, fontWeight: '700', color: sumColor(diagMainSum), fontVariant: ['tabular-nums'] }}>
+            ↘ {diagMainSum ?? '·'}
+          </Text>
+          <Text
+            accessibilityLabel={`Bottom-left to top-right diagonal sum: ${diagAntiSum ?? 'incomplete'}`}
+            style={{ fontSize: 15, fontWeight: '700', color: sumColor(diagAntiSum), fontVariant: ['tabular-nums'] }}>
+            ↗ {diagAntiSum ?? '·'}
+          </Text>
         </View>
       </View>
 
@@ -169,6 +199,7 @@ export default function MagicSquareScreen() {
           <Text style={{ color: palette.green, fontSize: 22, fontWeight: '800' }}>Solved in {formatSeconds(elapsed)}!</Text>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="New puzzle"
             onPress={() => newPuzzle(difficulty)}
             style={({ pressed }) => ({
               flexDirection: 'row',
