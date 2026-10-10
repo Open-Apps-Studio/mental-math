@@ -63,7 +63,7 @@ real builds/submissions.
 
 ## Product Direction
 
-OpenMath is **fully free** — no accounts, no paywall, no locked content.
+Mental Math is **fully free** — no accounts, no paywall, no locked content.
 Possible future additions (all intended to stay free):
 
 - richer custom trainer builder
