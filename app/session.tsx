@@ -4,7 +4,9 @@ import { router, Stack } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
+  BackHandler,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -136,10 +138,10 @@ export default function SessionScreen() {
     });
   }, [config, getEffectiveElapsedMs, recordRound]);
 
-  const openConfirm = () => {
+  const openConfirm = useCallback(() => {
     pauseStart.current = Date.now();
     setConfirming(true);
-  };
+  }, []);
 
   const closeConfirm = () => {
     if (pauseStart.current !== null) {
@@ -205,6 +207,16 @@ export default function SessionScreen() {
     });
     return () => sub.remove();
   }, [confirming, config.kind, config.seconds, finishRound, getEffectiveElapsedMs]);
+
+  // The header's close button and disabled swipe don't cover Android's back key.
+  useEffect(() => {
+    if (isFinished || Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      openConfirm();
+      return true;
+    });
+    return () => sub.remove();
+  }, [isFinished, openConfirm]);
 
   // Auto-advance: the instant the typed value is correct, score it and move on.
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { BackHandler, Platform } from 'react-native';
 import SessionScreen from '../app/session';
 import { generateQuestion, Question } from '@/lib/math';
 import { getStats, resetStats, saveRound } from '@/lib/stats';
@@ -199,6 +200,25 @@ describe('finishing', () => {
 });
 
 describe('leaving a round', () => {
+  it('asks before Android back abandons the round', async () => {
+    const original = Platform.OS;
+    Platform.OS = 'android';
+    const listen = jest.spyOn(BackHandler, 'addEventListener');
+    try {
+      await play();
+      const handler = listen.mock.calls.find(([event]) => event === 'hardwareBackPress')![1];
+      let handled = false;
+      await act(async () => {
+        handled = handler() === true;
+      });
+      expect(handled).toBe(true);
+      expect(screen.getByText('Cancel round?')).toBeTruthy();
+    } finally {
+      Platform.OS = original;
+      listen.mockRestore();
+    }
+  });
+
   it('stops the clock while the cancel dialog is open', async () => {
     await play();
     await tap('Cancel round');
