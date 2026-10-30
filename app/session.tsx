@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   AppState,
   BackHandler,
   Modal,
@@ -218,6 +219,14 @@ export default function SessionScreen() {
     return () => sub.remove();
   }, [isFinished, openConfirm]);
 
+  // Screen readers get no other cue that the question has changed.
+  useEffect(() => {
+    if (isFinished) return;
+    AccessibilityInfo.announceForAccessibility(
+      revealed ? `Answer: ${revealed.answer}. Next: ${question.prompt}` : question.prompt,
+    );
+  }, [question, revealed, isFinished]);
+
   // Auto-advance: the instant the typed value is correct, score it and move on.
   useEffect(() => {
     if (isFinished || !input) return;
@@ -431,7 +440,7 @@ export default function SessionScreen() {
             <Text
               numberOfLines={1}
               adjustsFontSizeToFit
-              style={{ color: input ? palette.text : palette.textFaint, fontSize: compact ? 26 : 30, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+              style={{ color: input ? palette.text : palette.textMuted, fontSize: compact ? 26 : 30, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
               {input || 'Type answer'}
             </Text>
           </View>
@@ -547,7 +556,7 @@ function Metric({ label, value, palette }: { label: string; value: string; palet
       accessible={true}
       accessibilityLabel={`${label}: ${value}`}
       style={{ flex: 1, borderRadius: radii.md, padding: spacing.sm, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}>
-      <Text style={{ color: palette.textFaint, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
+      <Text style={{ color: palette.textMuted, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
       <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: palette.text, fontSize: 18, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{value}</Text>
     </View>
   );
