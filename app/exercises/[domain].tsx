@@ -5,7 +5,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, GroupLabel } from '@/components/list';
 import { DifficultyBars } from '@/components/difficulty-bars';
-import { ExerciseIcon } from '@/components/exercise-icon';
+import { EXERCISE_ICONS, ExerciseIcon } from '@/components/exercise-icon';
 import { Segmented } from '@/components/segmented';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import { getDomain } from '@/data/domains';
@@ -101,7 +101,7 @@ export default function ExerciseSelectScreen() {
                     paddingVertical: spacing.sm,
                     opacity: pressed ? 0.6 : 1,
                   })}>
-                  <ExerciseIcon palette={palette} symbol={exercise.symbol} />
+                  <ExerciseIcon palette={palette} icon={EXERCISE_ICONS[exercise.id]} />
                   <Text style={{ flex: 1, color: palette.text, fontSize: 17, fontWeight: '500' }}>{exercise.label}</Text>
                   {isSelected ? <Ionicons name="checkmark-circle" size={20} color={palette.green} /> : null}
                 </Pressable>

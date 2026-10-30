@@ -22,7 +22,6 @@ export type RoundKind = 'timed' | 'unlimited';
 export type ExerciseDef = {
   id: ExerciseType;
   label: string;
-  symbol: string;
 };
 
 export type DifficultyDef = {
@@ -42,15 +41,15 @@ export type Question = {
 };
 
 export const EXERCISES: ExerciseDef[] = [
-  { id: 'add', label: 'Addition', symbol: '+' },
-  { id: 'subtract', label: 'Subtraction', symbol: '−' },
-  { id: 'multiply', label: 'Multiplication', symbol: '×' },
-  { id: 'divide', label: 'Division', symbol: '÷' },
-  { id: 'square', label: 'Squares', symbol: 'x²' },
-  { id: 'sqrt', label: 'Square roots', symbol: '√x' },
-  { id: 'fraction', label: 'Fractions', symbol: '⁄' },
-  { id: 'percent', label: 'Percentages', symbol: '%' },
-  { id: 'modulo', label: 'Modulo', symbol: 'M' },
+  { id: 'add', label: 'Addition' },
+  { id: 'subtract', label: 'Subtraction' },
+  { id: 'multiply', label: 'Multiplication' },
+  { id: 'divide', label: 'Division' },
+  { id: 'square', label: 'Squares' },
+  { id: 'sqrt', label: 'Square roots' },
+  { id: 'fraction', label: 'Fractions' },
+  { id: 'percent', label: 'Percentages' },
+  { id: 'modulo', label: 'Modulo' },
 ];
 
 export const DIFFICULTIES: DifficultyDef[] = [

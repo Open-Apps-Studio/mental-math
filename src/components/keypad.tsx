@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Palette, radii, spacing } from '@/constants/theme';
 
 const decimalSeparator = (() => {
@@ -53,7 +54,11 @@ export function Keypad({ palette, onKey, disabled, keyHeight = 62 }: Props) {
                   justifyContent: 'center',
                   opacity: disabled ? 0.4 : pressed ? 0.72 : 1,
                 })}>
-                <Text style={{ color: palette.text, fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{key}</Text>
+                {isBackspace ? (
+                  <Ionicons name="backspace-outline" size={28} color={palette.text} />
+                ) : (
+                  <Text style={{ color: palette.text, fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{key}</Text>
+                )}
               </Pressable>
             );
           })}
