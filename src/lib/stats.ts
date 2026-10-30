@@ -150,10 +150,12 @@ export async function saveRound(result: RoundResult): Promise<MathStats> {
   const totalCorrect = (Number.isFinite(current.totalCorrect) ? current.totalCorrect : 0) + safeResult.correct;
   const totalAttempted = (Number.isFinite(current.totalAttempted) ? current.totalAttempted : 0) + safeResult.attempted;
   const acc = safeResult.attempted === 0 ? 0 : safeResult.correct / safeResult.attempted;
+  // With no clock, the score only measures how long the player kept going.
+  const timed = safeResult.kind === 'timed';
 
   const bestByKey = { ...current.bestByKey };
   const prev = bestByKey[safeResult.key];
-  if (!prev || safeResult.correct > prev.correct || (safeResult.correct === prev.correct && acc > prev.accuracy)) {
+  if (timed && (!prev || safeResult.correct > prev.correct || (safeResult.correct === prev.correct && acc > prev.accuracy))) {
     bestByKey[safeResult.key] = { correct: safeResult.correct, accuracy: acc, createdAt: safeResult.createdAt };
   }
 
@@ -163,7 +165,7 @@ export async function saveRound(result: RoundResult): Promise<MathStats> {
   const next: MathStats = {
     rounds,
     bestByKey,
-    bestRun: Math.max(Number.isFinite(current.bestRun) ? current.bestRun : 0, safeResult.correct),
+    bestRun: Math.max(Number.isFinite(current.bestRun) ? current.bestRun : 0, timed ? safeResult.correct : 0),
     totalCorrect,
     totalAttempted,
     streakDays,

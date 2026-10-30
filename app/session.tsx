@@ -123,7 +123,7 @@ export default function SessionScreen() {
       solved: count,
       attempted,
       elapsedSeconds: finalElapsed,
-      isNewBest: previousBest !== undefined && count > previousBest,
+      isNewBest: config.kind === 'timed' && previousBest !== undefined && count > previousBest,
     });
     // A round nobody played shouldn't land in the history or keep a streak alive.
     if (attempted === 0) return;
@@ -376,7 +376,12 @@ export default function SessionScreen() {
       <Stack.Screen
         options={{
           title: 'Round',
-          headerLeft: () => null,
+          headerLeft: () =>
+            config.kind === 'unlimited' ? (
+              <Pressable onPress={finishRound} hitSlop={10} accessibilityLabel="Finish round" accessibilityRole="button" style={{ paddingHorizontal: spacing.xs }}>
+                <Text style={{ color: palette.blue, fontSize: 17, fontWeight: '600' }}>Finish</Text>
+              </Pressable>
+            ) : null,
           gestureEnabled: false,
           headerRight: () => (
             <Pressable

@@ -199,6 +199,36 @@ describe('finishing', () => {
   });
 });
 
+describe('no-limit rounds', () => {
+  const unlimited = { kind: 'unlimited', seconds: 0 } as const;
+
+  it('keeps running past any timed length until Finish is pressed', async () => {
+    await play(unlimited);
+    await answer(2);
+    await passTime(10 * 60_000);
+    expect(screen.getByLabelText('Elapsed: 10:00')).toBeTruthy();
+    expect(getStats().rounds).toHaveLength(0);
+
+    await tap('Finish round');
+    expect(screen.getByLabelText('Accuracy: 100%')).toBeTruthy();
+    expect(getStats().rounds[0]).toMatchObject({ kind: 'unlimited', correct: 1 });
+  });
+
+  it('never counts as a new best', async () => {
+    await seedBest(1);
+    await play(unlimited);
+    await answer(2);
+    await answer(4);
+    await tap('Finish round');
+    expect(screen.queryByText('New best!')).toBeNull();
+  });
+
+  it('shows no Finish button on timed rounds', async () => {
+    await play();
+    expect(screen.queryByLabelText('Finish round')).toBeNull();
+  });
+});
+
 describe('leaving a round', () => {
   it('asks before Android back abandons the round', async () => {
     const original = Platform.OS;

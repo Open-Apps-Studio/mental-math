@@ -53,6 +53,16 @@ describe('saveRound', () => {
     expect(stats.bestRun).toBe(9);
   });
 
+  it('ignores untimed rounds for best scores, which only measure time spent', async () => {
+    await saveRound(round({ correct: 5 }));
+    await saveRound(round({ kind: 'unlimited', correct: 500, attempted: 500 }));
+    const stats = getStats();
+    expect(stats.bestRun).toBe(5);
+    expect(stats.bestByKey['test-60'].correct).toBe(5);
+    expect(stats.totalCorrect).toBe(505);
+    expect(stats.rounds).toHaveLength(2);
+  });
+
   it('never reports fewer attempts than correct answers', async () => {
     await saveRound(round({ correct: 10, attempted: 2 }));
     expect(getStats().rounds[0].attempted).toBe(10);

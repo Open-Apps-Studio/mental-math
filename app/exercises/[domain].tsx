@@ -6,11 +6,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, GroupLabel } from '@/components/list';
 import { DifficultyBars } from '@/components/difficulty-bars';
 import { ExerciseIcon } from '@/components/exercise-icon';
+import { Segmented } from '@/components/segmented';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import { getDomain } from '@/data/domains';
 import { Difficulty, difficultyLevel, EXERCISES, ExerciseType } from '@/lib/math';
 import { useScheme } from '@/lib/settings';
-import { difficultyFor, openDomain, startSession, toggleExercise, useSelection } from '@/lib/trainer-store';
+import {
+  difficultyFor,
+  openDomain,
+  ROUND_LENGTHS,
+  setRoundLength,
+  startSession,
+  toggleExercise,
+  useSelection,
+} from '@/lib/trainer-store';
 
 export default function ExerciseSelectScreen() {
   const palette = getPalette(useScheme());
@@ -33,14 +42,16 @@ export default function ExerciseSelectScreen() {
       difficulty[id] = difficultyFor(id);
     });
     const labels = selected.map((id) => EXERCISES.find((e) => e.id === id)?.label).filter(Boolean);
+    // Bests only compare like with like: same exercises, levels and length.
+    const mix = [...selected].sort().map((id) => `${id}:${difficulty[id]}`).join(',');
     startSession({
       title: `${domain.title} · ${labels.join(', ')}`,
-      statKey: domain.id,
+      statKey: `${domain.id}-${selection.seconds}-${mix}`,
       domain: domain.id,
       exercises: selected as ExerciseType[],
       difficulty,
-      kind: 'timed',
-      seconds: 60,
+      kind: selection.seconds === 0 ? 'unlimited' : 'timed',
+      seconds: selection.seconds,
     });
     router.push('/session');
   };
@@ -49,6 +60,16 @@ export default function ExerciseSelectScreen() {
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <Stack.Screen options={{ title: domain.title }} />
       <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: 140, gap: spacing.sm }}>
+        <View style={{ marginBottom: spacing.sm }}>
+          <GroupLabel palette={palette}>Round length</GroupLabel>
+          <Segmented
+            palette={palette}
+            options={ROUND_LENGTHS}
+            value={`${selection.seconds}`}
+            onChange={(value) => setRoundLength(Number(value))}
+          />
+        </View>
+
         <GroupLabel palette={palette}>Exercise types</GroupLabel>
         <Card palette={palette}>
           {exercises.map((exercise, index) => {
