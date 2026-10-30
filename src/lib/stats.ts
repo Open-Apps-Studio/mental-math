@@ -48,8 +48,23 @@ let state: MathStats = emptyStats;
 let hydrated = false;
 const listeners = new Set<() => void>();
 
+// Hydrating reads storage asynchronously, and it runs on every app resume --
+// the same moment a timed round that expired in the background gets saved.
+// Writes run in order and hydrateStats waits for them, then drops its read if
+// another write started in the meantime, so a stale read can't undo a save.
+let writes = 0;
+let pendingWrite: Promise<void> = Promise.resolve();
+
 function emit() {
   listeners.forEach((l) => l());
+}
+
+function persist(write: () => Promise<void>): Promise<void> {
+  writes += 1;
+  pendingWrite = pendingWrite.then(write).catch((err) => {
+    console.warn('Failed to persist stats:', err);
+  });
+  return pendingWrite;
 }
 
 export function subscribeStats(listener: () => void): () => void {
@@ -72,8 +87,11 @@ export function currentStreakDays(lastPracticeDate: string | null, streakDays: n
 }
 
 export async function hydrateStats(): Promise<MathStats> {
+  await pendingWrite;
+  const writesBefore = writes;
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (writes !== writesBefore) return state;
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -159,22 +177,14 @@ export async function saveRound(result: RoundResult): Promise<MathStats> {
 
   state = next;
   emit();
-  try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch (err) {
-    console.warn('Failed to persist stats:', err);
-  }
+  await persist(() => AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)));
   return next;
 }
 
 export async function resetStats(): Promise<void> {
   state = emptyStats;
   emit();
-  try {
-    await AsyncStorage.removeItem(STORAGE_KEY);
-  } catch (err) {
-    console.warn('Failed to remove stats:', err);
-  }
+  await persist(() => AsyncStorage.removeItem(STORAGE_KEY));
 }
 
 export function accuracy(correct: number, attempted: number): number {
