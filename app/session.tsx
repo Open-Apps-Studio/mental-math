@@ -300,7 +300,7 @@ export default function SessionScreen() {
           contentContainerStyle={{ width: '100%', maxWidth: MAX_WIDTH, alignSelf: 'center', padding: spacing.md, gap: spacing.md }}>
           <View style={{ borderRadius: radii.lg, padding: spacing.xl, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, alignItems: 'center', gap: spacing.sm }}>
             <Text style={{ color: palette.textMuted, fontSize: 14, fontWeight: '700', textAlign: 'center' }}>{config.title}</Text>
-            <Text style={{ color: palette.green, fontSize: 64, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{summary.solved}</Text>
+            <Text style={{ color: palette.green, fontSize: 64, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{summary.solved}</Text>
             <Text style={{ color: palette.textMuted, fontSize: 16 }}>solved</Text>
             {summary.isNewBest ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
@@ -364,7 +364,7 @@ export default function SessionScreen() {
             accessibilityRole="button"
             accessibilityLabel="Play again"
             style={({ pressed }) => ({ flex: 1, height: 54, borderRadius: radii.pill, backgroundColor: palette.green, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}>
-            <Text style={{ color: '#FFFFFF', fontSize: 17, fontWeight: '800' }}>Play again</Text>
+            <Text style={{ color: palette.onGreen, fontSize: 17, fontWeight: '700' }}>Play again</Text>
           </Pressable>
         </View>
       </View>
@@ -427,7 +427,7 @@ export default function SessionScreen() {
           <Text
             numberOfLines={2}
             adjustsFontSizeToFit
-            style={{ color: palette.text, fontSize: compact ? 38 : 46, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+            style={{ color: palette.text, fontSize: compact ? 38 : 46, fontWeight: '700', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
             {question.prompt}
           </Text>
           {revealed ? (
@@ -445,7 +445,7 @@ export default function SessionScreen() {
             <Text
               numberOfLines={1}
               adjustsFontSizeToFit
-              style={{ color: input ? palette.text : palette.textMuted, fontSize: compact ? 26 : 30, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+              style={{ color: input ? palette.text : palette.textMuted, fontSize: compact ? 26 : 30, fontWeight: '700', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
               {input || 'Type answer'}
             </Text>
           </View>
@@ -509,7 +509,7 @@ function CancelDialog({
         <Pressable
           onPress={() => {}}
           style={{ width: '100%', maxWidth: 340, borderRadius: radii.lg, backgroundColor: palette.surface, padding: spacing.lg, gap: spacing.md }}>
-          <Text style={{ color: palette.text, fontSize: 18, fontWeight: '800', textAlign: 'center' }}>Cancel round?</Text>
+          <Text style={{ color: palette.text, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>Cancel round?</Text>
           <Text style={{ color: palette.textMuted, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
             Your progress will be lost. Are you sure you want to cancel the current round?
           </Text>
@@ -550,7 +550,7 @@ function DialogButton({
         backgroundColor: filled ? color : palette.surfaceStrong,
         opacity: pressed ? 0.75 : 1,
       })}>
-      <Text style={{ color: filled ? '#FFFFFF' : color, fontSize: 16, fontWeight: '700' }}>{label}</Text>
+      <Text style={{ color: filled ? palette.onGreen : color, fontSize: 16, fontWeight: '700' }}>{label}</Text>
     </Pressable>
   );
 }
@@ -562,7 +562,7 @@ function Metric({ label, value, palette }: { label: string; value: string; palet
       accessibilityLabel={`${label}: ${value}`}
       style={{ flex: 1, borderRadius: radii.md, padding: spacing.sm, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}>
       <Text style={{ color: palette.textMuted, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: palette.text, fontSize: 18, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{value}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: palette.text, fontSize: 18, fontWeight: '700', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{value}</Text>
     </View>
   );
 }

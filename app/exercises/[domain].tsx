@@ -157,8 +157,8 @@ export default function ExerciseSelectScreen() {
             justifyContent: 'center',
             opacity: pressed ? 0.8 : 1,
           })}>
-          <Text style={{ color: selected.length === 0 ? palette.textFaint : '#FFFFFF', fontSize: 17, fontWeight: '800', letterSpacing: 0.5 }}>
-            START
+          <Text style={{ color: selected.length === 0 ? palette.textFaint : palette.onGreen, fontSize: 17, fontWeight: '700' }}>
+            Start
           </Text>
         </Pressable>
       </View>

@@ -79,7 +79,6 @@ export default function TrickListScreen() {
                 separator={index < rows.length - 1}
                 onPress={() => router.push({ pathname: '/trick', params: { category: catId, id: trick.id } })}
                 chevron
-                left={<View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: palette.green }} />}
               />
             ))}
           </Card>

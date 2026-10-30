@@ -19,9 +19,9 @@ type Props = {
 // and the Knowledge category grid.
 export function WatermarkCard({ palette, title, sublabel, watermark, onPress, filled, style, minHeight = 92 }: Props) {
   const bg = filled ? palette.green : palette.surface;
-  const fg = filled ? '#FFFFFF' : palette.text;
-  const subFg = filled ? 'rgba(255,255,255,0.85)' : palette.textMuted;
-  const markColor = filled ? 'rgba(255,255,255,0.28)' : palette.textFaint;
+  const fg = filled ? palette.onGreen : palette.text;
+  const subFg = filled ? palette.onGreen : palette.textMuted;
+  const markColor = filled ? `${palette.onGreen}47` : palette.textFaint;
 
   return (
     <Pressable
@@ -57,7 +57,7 @@ export function WatermarkCard({ palette, title, sublabel, watermark, onPress, fi
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
         <Text style={{ color: fg, fontSize: 18, fontWeight: '700', flexShrink: 1 }}>{title}</Text>
-        <Ionicons name="chevron-forward" size={16} color={filled ? '#FFFFFF' : palette.textFaint} />
+        <Ionicons name="chevron-forward" size={16} color={filled ? palette.onGreen : palette.textFaint} />
       </View>
       {sublabel ? <Text style={{ color: subFg, fontSize: 14, marginTop: 2 }}>{sublabel}</Text> : null}
     </Pressable>

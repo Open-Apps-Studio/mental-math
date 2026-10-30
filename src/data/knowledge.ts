@@ -30,7 +30,7 @@ export const CATEGORIES: TrickCategory[] = [
     title: 'Addition',
     icon: 'plus',
     symbol: '+',
-    blurb: 'Cool addition tricks',
+    blurb: 'Addition tricks',
     tricks: [
       {
         id: 'add-left-to-right',
@@ -74,7 +74,7 @@ export const CATEGORIES: TrickCategory[] = [
     title: 'Subtraction',
     icon: 'minus',
     symbol: '−',
-    blurb: 'Cool subtraction tricks',
+    blurb: 'Subtraction tricks',
     tricks: [
       {
         id: 'sub-split-one',
@@ -139,7 +139,7 @@ export const CATEGORIES: TrickCategory[] = [
     title: 'Multiplication',
     icon: 'close',
     symbol: '×',
-    blurb: 'Cool multiplication tricks',
+    blurb: 'Multiplication tricks',
     tricks: [
       {
         id: 'mul-x2',
@@ -295,7 +295,7 @@ export const CATEGORIES: TrickCategory[] = [
     title: 'Division',
     icon: 'division',
     symbol: '÷',
-    blurb: 'Cool division tricks',
+    blurb: 'Division tricks',
     tricks: [
       {
         id: 'div-by-2',
@@ -367,7 +367,7 @@ export const CATEGORIES: TrickCategory[] = [
     title: 'Squares',
     icon: 'exponent',
     symbol: 'x²',
-    blurb: 'Cool squaring tricks',
+    blurb: 'Squaring tricks',
     tricks: [
       {
         id: 'sq-end-5',

@@ -57,7 +57,7 @@ export default function TrickScreen() {
           padding: spacing.lg,
           gap: spacing.xs,
         }}>
-        <Text style={{ color: palette.text, fontSize: 20, fontWeight: '800' }}>{trick.title}</Text>
+        <Text style={{ color: palette.text, fontSize: 20, fontWeight: '700' }}>{trick.title}</Text>
         <Text style={{ color: palette.textMuted, fontSize: 15, lineHeight: 21 }}>{trick.summary}</Text>
       </View>
 
@@ -85,7 +85,7 @@ export default function TrickScreen() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '800' }}>{index + 1}</Text>
+                <Text style={{ color: palette.onGreen, fontSize: 13, fontWeight: '700' }}>{index + 1}</Text>
               </View>
               <Text style={{ flex: 1, color: palette.text, fontSize: 15, lineHeight: 21 }}>{step}</Text>
             </View>
@@ -138,8 +138,8 @@ export default function TrickScreen() {
             paddingVertical: spacing.md,
             opacity: pressed ? 0.85 : 1,
           })}>
-          <Ionicons name="play" size={18} color="#FFFFFF" />
-          <Text style={{ color: '#FFFFFF', fontSize: 17, fontWeight: '800' }}>Practice this trick · 60s</Text>
+          <Ionicons name="play" size={18} color={palette.onGreen} />
+          <Text style={{ color: palette.onGreen, fontSize: 17, fontWeight: '700' }}>Practice this trick · 60s</Text>
         </Pressable>
       )}
     </ScrollView>

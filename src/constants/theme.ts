@@ -22,6 +22,8 @@ export type Palette = {
   warning: string;
   blue: string;
   green: string;
+  /** Text and icons on a filled green surface. */
+  onGreen: string;
   greenSoft: string;
   purple: string;
   orange: string;
@@ -60,7 +62,8 @@ const light: Palette = {
   danger: '#FF3B30',
   warning: '#FF9500',
   blue: '#007AFF',
-  green: '#34C759',
+  green: '#1A8537',
+  onGreen: '#FFFFFF',
   greenSoft: '#E4F8EA',
   purple: '#AF52DE',
   orange: '#FF9500',
@@ -83,6 +86,7 @@ const dark: Palette = {
   warning: '#FF9F0A',
   blue: '#0A84FF',
   green: '#30D158',
+  onGreen: '#04240F',
   greenSoft: '#16331F',
   purple: '#BF5AF2',
   orange: '#FF9F0A',

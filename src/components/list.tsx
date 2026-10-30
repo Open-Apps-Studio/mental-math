@@ -25,7 +25,7 @@ export function Card({ palette, children, style }: { palette: Palette; children:
 /** Bold dark heading used for top-level page sections (e.g. "Basics"). */
 export function SectionTitle({ palette, children, style }: { palette: Palette; children: ReactNode; style?: TextStyle }) {
   return (
-    <Text style={[{ color: palette.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.3 }, style]}>{children}</Text>
+    <Text style={[{ color: palette.text, fontSize: 22, fontWeight: '700', letterSpacing: -0.3 }, style]}>{children}</Text>
   );
 }
 

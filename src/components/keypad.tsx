@@ -57,7 +57,7 @@ export function Keypad({ palette, onKey, disabled, keyHeight = 62 }: Props) {
                 {isBackspace ? (
                   <Ionicons name="backspace-outline" size={28} color={palette.text} />
                 ) : (
-                  <Text style={{ color: palette.text, fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{key}</Text>
+                  <Text style={{ color: palette.text, fontSize: 24, fontWeight: '600', fontVariant: ['tabular-nums'] }}>{key}</Text>
                 )}
               </Pressable>
             );

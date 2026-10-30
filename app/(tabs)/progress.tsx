@@ -24,10 +24,10 @@ export default function ProgressScreen() {
   return (
     <Screen palette={palette} title="Progress">
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-        <StatCard label="Solved" value={`${stats.totalCorrect ?? 0}`} palette={palette} tone="green" />
-        <StatCard label="Accuracy" value={`${accuracy(stats.totalCorrect, stats.totalAttempted)}%`} palette={palette} tone="blue" />
-        <StatCard label="Best run" value={`${stats.bestRun ?? 0}`} palette={palette} tone="purple" />
-        <StatCard label="Streak" value={`${stats.streakDays ?? 0}d`} palette={palette} tone="orange" />
+        <StatCard label="Solved" value={`${stats.totalCorrect ?? 0}`} palette={palette} />
+        <StatCard label="Accuracy" value={`${accuracy(stats.totalCorrect, stats.totalAttempted)}%`} palette={palette} />
+        <StatCard label="Best run" value={`${stats.bestRun ?? 0}`} palette={palette} />
+        <StatCard label="Streak" value={`${stats.streakDays ?? 0}d`} palette={palette} />
       </View>
 
       <View>

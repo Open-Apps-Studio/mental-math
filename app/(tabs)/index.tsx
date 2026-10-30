@@ -106,17 +106,17 @@ export default function TestsScreen() {
           opacity: pressed ? 0.85 : 1,
           overflow: 'hidden',
         })}>
-        <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '700' }}>Daily challenge</Text>
-        <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '800' }}>{DAILY.title}</Text>
-        <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 15 }}>
+        <Text style={{ color: palette.onGreen, fontSize: 14, fontWeight: '700' }}>Daily challenge</Text>
+        <Text style={{ color: palette.onGreen, fontSize: 28, fontWeight: '700' }}>{DAILY.title}</Text>
+        <Text style={{ color: palette.onGreen, fontSize: 15 }}>
           Solve as many mixed problems as you can in {formatSeconds(DAILY.seconds)}.
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.25)', paddingHorizontal: 14, paddingVertical: 9, borderRadius: radii.pill }}>
-            <Ionicons name="play" size={15} color="#FFFFFF" />
-            <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '800' }}>Start</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: palette.onGreen, paddingHorizontal: 14, paddingVertical: 9, borderRadius: radii.pill }}>
+            <Ionicons name="play" size={15} color={palette.green} />
+            <Text style={{ color: palette.green, fontSize: 15, fontWeight: '700' }}>Start</Text>
           </View>
-          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '700' }}>Best: {best}</Text>
+          <Text style={{ color: palette.onGreen, fontSize: 14, fontWeight: '700' }}>Best: {best}</Text>
         </View>
       </Pressable>
 

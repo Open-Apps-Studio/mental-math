@@ -26,7 +26,7 @@ export function Screen({ palette, title, headerRight, children }: Props) {
         gap: spacing.md,
       }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: spacing.sm, marginBottom: spacing.xs }}>
-        <Text style={{ color: palette.text, fontSize: 34, fontWeight: '800', letterSpacing: -0.5 }}>{title}</Text>
+        <Text style={{ color: palette.text, fontSize: 34, fontWeight: '700', letterSpacing: -0.5 }}>{title}</Text>
         {headerRight}
       </View>
       {children}
