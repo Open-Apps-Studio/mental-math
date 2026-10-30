@@ -21,11 +21,12 @@ type Props = {
   palette: Palette;
   onKey: (key: string) => void;
   disabled?: boolean;
+  keyHeight?: number;
 };
 
 // Numeric entry pad. There is no submit key — the round auto-advances as soon
 // as the typed value matches the answer.
-export function Keypad({ palette, onKey, disabled }: Props) {
+export function Keypad({ palette, onKey, disabled, keyHeight = 62 }: Props) {
   return (
     <View style={{ gap: spacing.sm }}>
       {keyRows.map((row) => (
@@ -43,7 +44,7 @@ export function Keypad({ palette, onKey, disabled }: Props) {
                 accessibilityLabel={a11yLabel}
                 style={({ pressed }) => ({
                   flex: 1,
-                  height: 62,
+                  height: keyHeight,
                   borderRadius: radii.md,
                   backgroundColor: palette.surface,
                   borderWidth: 1,

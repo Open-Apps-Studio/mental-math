@@ -2,7 +2,15 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import {
+  AppState,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Keypad } from '@/components/keypad';
 import { Card, GroupLabel, Row } from '@/components/list';
@@ -22,6 +30,9 @@ import { useScheme, useSettings } from '@/lib/settings';
 import { accuracy, getStats } from '@/lib/stats';
 import { getPendingSession, SessionConfig } from '@/lib/trainer-store';
 import { useStats } from '@/hooks/use-stats';
+
+// Keeps the keypad a sensible size on iPad.
+const MAX_WIDTH = 560;
 
 const FALLBACK: SessionConfig = {
   title: '60-Second Test',
@@ -44,6 +55,9 @@ type RoundSummary = {
 
 export default function SessionScreen() {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  // Short phones: tighten up so the bottom keypad row doesn't need scrolling.
+  const compact = height < 700;
   const palette = getPalette(useScheme());
   const { haptics } = useSettings();
   const { recordRound } = useStats();
@@ -262,7 +276,7 @@ export default function SessionScreen() {
         <Stack.Screen options={{ title: 'Results', headerLeft: () => null, headerRight: () => null }} />
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
+          contentContainerStyle={{ width: '100%', maxWidth: MAX_WIDTH, alignSelf: 'center', padding: spacing.md, gap: spacing.md }}>
           <View style={{ borderRadius: radii.lg, padding: spacing.xl, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, alignItems: 'center', gap: spacing.sm }}>
             <Text style={{ color: palette.textMuted, fontSize: 14, fontWeight: '700', textAlign: 'center' }}>{config.title}</Text>
             <Text style={{ color: palette.green, fontSize: 64, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{summary.solved}</Text>
@@ -310,6 +324,9 @@ export default function SessionScreen() {
           style={{
             flexDirection: 'row',
             gap: spacing.sm,
+            width: '100%',
+            maxWidth: MAX_WIDTH,
+            alignSelf: 'center',
             paddingHorizontal: spacing.md,
             paddingTop: spacing.sm,
             paddingBottom: Math.max(spacing.md, insets.bottom + spacing.sm),
@@ -351,7 +368,17 @@ export default function SessionScreen() {
           ),
         }}
       />
-      <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: Math.max(spacing.md, insets.bottom + spacing.sm), gap: spacing.md }}>
+      <ScrollView
+        alwaysBounceVertical={false}
+        contentContainerStyle={{
+          flexGrow: 1,
+          width: '100%',
+          maxWidth: MAX_WIDTH,
+          alignSelf: 'center',
+          padding: spacing.md,
+          paddingBottom: Math.max(spacing.md, insets.bottom + spacing.sm),
+          gap: compact ? spacing.sm : spacing.md,
+        }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm }}>
           <Metric label={config.kind === 'timed' ? 'Time' : 'Elapsed'} value={config.kind === 'timed' ? formatSeconds(secondsLeft) : formatSeconds(elapsedSeconds)} palette={palette} />
           <Metric label="Solved" value={`${solved}`} palette={palette} />
@@ -359,18 +386,24 @@ export default function SessionScreen() {
 
         <View
           style={{
+            flex: 1,
             borderRadius: radii.lg,
-            padding: spacing.xl,
-            minHeight: 200,
+            padding: compact ? spacing.md : spacing.xl,
+            minHeight: compact ? 104 : 180,
             backgroundColor: flash ? `${palette.success}22` : palette.surface,
             borderWidth: 1,
             borderColor: flash ? palette.success : palette.border,
             alignItems: 'center',
             justifyContent: 'center',
-            gap: spacing.md,
+            gap: compact ? spacing.xs : spacing.md,
           }}>
           <Text style={{ color: palette.green, fontSize: 14, fontWeight: '700' }}>{getExercise(question.exercise).label}</Text>
-          <Text style={{ color: palette.text, fontSize: 46, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{question.prompt}</Text>
+          <Text
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            style={{ color: palette.text, fontSize: compact ? 38 : 46, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+            {question.prompt}
+          </Text>
           {revealed ? (
             <Text
               numberOfLines={1}
@@ -382,11 +415,11 @@ export default function SessionScreen() {
         </View>
 
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <View style={{ flex: 1, borderRadius: radii.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: palette.surfaceStrong, minHeight: 64, justifyContent: 'center' }}>
+          <View style={{ flex: 1, borderRadius: radii.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: palette.surfaceStrong, minHeight: compact ? 52 : 64, justifyContent: 'center' }}>
             <Text
               numberOfLines={1}
               adjustsFontSizeToFit
-              style={{ color: input ? palette.text : palette.textFaint, fontSize: 30, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+              style={{ color: input ? palette.text : palette.textFaint, fontSize: compact ? 26 : 30, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
               {input || 'Type answer'}
             </Text>
           </View>
@@ -410,7 +443,7 @@ export default function SessionScreen() {
           </Pressable>
         </View>
 
-        <Keypad palette={palette} onKey={appendKey} />
+        <Keypad palette={palette} onKey={appendKey} keyHeight={compact ? 54 : 62} />
       </ScrollView>
 
       <CancelDialog
