@@ -17,7 +17,9 @@ export function Segmented<T extends string>({ palette, options, value, onChange 
         return (
           <Pressable
             key={option.value}
-            onPress={() => onChange(option.value)}
+            onPress={() => {
+              if (!active) onChange(option.value);
+            }}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             accessibilityLabel={option.label}
