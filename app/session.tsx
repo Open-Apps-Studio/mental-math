@@ -14,6 +14,7 @@ import {
   generateQuestion,
   getExercise,
   isCorrect,
+  nextQuestion,
   Question,
 } from '@/lib/math';
 import { useScheme, useSettings } from '@/lib/settings';
@@ -38,14 +39,15 @@ export default function SessionScreen() {
   const config = useMemo(() => getPendingSession() ?? FALLBACK, []);
 
   const next = useMemo(
-    () => () => {
-      const drill = trickDrill(config.trickId);
-      if (drill) return drill();
-      const exercises = config.exercises.length > 0 ? config.exercises : FALLBACK.exercises;
-      const exercise = exercises[Math.floor(Math.random() * exercises.length)] as ExerciseType;
-      const difficulty: Difficulty = config.difficulty[exercise] ?? 'medium';
-      return generateQuestion(exercise, config.domain, difficulty);
-    },
+    () => (previousPrompt?: string) =>
+      nextQuestion(() => {
+        const drill = trickDrill(config.trickId);
+        if (drill) return drill();
+        const exercises = config.exercises.length > 0 ? config.exercises : FALLBACK.exercises;
+        const exercise = exercises[Math.floor(Math.random() * exercises.length)] as ExerciseType;
+        const difficulty: Difficulty = config.difficulty[exercise] ?? 'medium';
+        return generateQuestion(exercise, config.domain, difficulty);
+      }, previousPrompt),
     [config],
   );
 
@@ -171,7 +173,7 @@ export default function SessionScreen() {
     if (flashTimeout.current) clearTimeout(flashTimeout.current);
     flashTimeout.current = setTimeout(() => setFlash(false), 160);
     setInput('');
-    setQuestion(next());
+    setQuestion(next(question.prompt));
   }, [input, question, isFinished, haptics, next]);
 
   const appendKey = (key: string) => {
@@ -190,7 +192,7 @@ export default function SessionScreen() {
     pausedTotalMs.current = 0;
     pauseStart.current = null;
     setConfirming(false);
-    setQuestion(next());
+    setQuestion(next(question.prompt));
     setInput('');
     setSolved(0);
     setSecondsLeft(config.kind === 'timed' ? config.seconds : 0);
