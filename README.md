@@ -9,14 +9,17 @@ without copying their branding, screenshots, or assets.
 
 Five tabs, modeled on FastMath's structure:
 
-- **Tests** – a daily 60-second challenge plus preset timed tests (sprints,, at any of four difficulty levels, plus a Magic Square number puzzle.
-  marathon, per-operation, hard mixed) that track best scores.
+- **Tests** – a daily 60-second challenge plus preset timed tests (sprint,
+  marathon, per-operation, hard mixed) at any of four difficulty levels, each
+  tracking its best score, plus a Magic Square number puzzle.
 - **Trainer** – Standard/Custom modes. Pick a number domain (Times tables,
   Natural, Decimal, Money, Huge), select one or more exercises, set per-exercise
-  difficulty (Easy → Super hard) via the signal-bar indicator, then START.
-- **Knowledge** – a library of mental-math tricks grouped by operation; every trick has a 60-second drill that practices exactly that trick.
+  difficulty (Easy → Super hard) via the signal-bar indicator, choose a round
+  length (30s, 1 min, 2 min, or no limit), then START.
+- **Knowledge** – a library of mental-math tricks grouped by operation
   (addition, subtraction, multiplication, division, squares) with step-by-step
-  walk-throughs, worked examples, and local favorites.
+  walk-throughs, worked examples, and local favorites. Every trick has a
+  60-second drill that practices exactly that trick.
 - **Progress** – totals, accuracy, best run, daily streak, longest streak, a
   last-7-days activity strip, and recent rounds.
 - **Settings** – light/dark/system theme, haptics, about.
@@ -24,7 +27,9 @@ Five tabs, modeled on FastMath's structure:
 Everything is **free** — no Pro tier, paywall, or locked content. Exercises cover
 addition, subtraction, multiplication, division, squares, square roots,
 fractions, percentages, and modulo. The session screen uses an on-screen numeric
-keypad with haptic answer feedback.
+keypad with haptic answer feedback; answers score the moment they are correct,
+and Skip moves past a question, shows its answer, and lists it for review on the
+results screen.
 
 ## Tech Stack
 
@@ -40,14 +45,15 @@ keypad with haptic answer feedback.
 ```bash
 npm install
 npm run typecheck
+npm test
 npm run web
 npm start
 ```
 
-## App Store / Release Notes
+Tests live next to the code they cover (`*.test.ts`). Keep them out of `app/`,
+where Expo Router would treat them as routes.
 
-This repo is intentionally private under `Open-Apps-Studio` for now, but should
-remain clean enough to open source later.
+## App Store / Release Notes
 
 Do not commit local credentials:
 

@@ -2,9 +2,21 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  AppState,
+  BackHandler,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Keypad } from '@/components/keypad';
+import { Card, GroupLabel, Row } from '@/components/list';
 import { trickDrill } from '@/lib/trick-drills';
 import { getPalette, radii, spacing } from '@/constants/theme';
 import {
@@ -14,11 +26,16 @@ import {
   generateQuestion,
   getExercise,
   isCorrect,
+  nextQuestion,
   Question,
 } from '@/lib/math';
 import { useScheme, useSettings } from '@/lib/settings';
+import { accuracy, getStats } from '@/lib/stats';
 import { getPendingSession, SessionConfig } from '@/lib/trainer-store';
 import { useStats } from '@/hooks/use-stats';
+
+// Keeps the keypad a sensible size on iPad.
+const MAX_WIDTH = 560;
 
 const FALLBACK: SessionConfig = {
   title: '60-Second Test',
@@ -30,22 +47,35 @@ const FALLBACK: SessionConfig = {
   seconds: 60,
 };
 
+type MissedQuestion = { prompt: string; answer: string };
+
+type RoundSummary = {
+  solved: number;
+  attempted: number;
+  elapsedSeconds: number;
+  isNewBest: boolean;
+};
+
 export default function SessionScreen() {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  // Short phones: tighten up so the bottom keypad row doesn't need scrolling.
+  const compact = height < 700;
   const palette = getPalette(useScheme());
   const { haptics } = useSettings();
   const { recordRound } = useStats();
   const config = useMemo(() => getPendingSession() ?? FALLBACK, []);
 
   const next = useMemo(
-    () => () => {
-      const drill = trickDrill(config.trickId);
-      if (drill) return drill();
-      const exercises = config.exercises.length > 0 ? config.exercises : FALLBACK.exercises;
-      const exercise = exercises[Math.floor(Math.random() * exercises.length)] as ExerciseType;
-      const difficulty: Difficulty = config.difficulty[exercise] ?? 'medium';
-      return generateQuestion(exercise, config.domain, difficulty);
-    },
+    () => (previousPrompt?: string) =>
+      nextQuestion(() => {
+        const drill = trickDrill(config.trickId);
+        if (drill) return drill();
+        const exercises = config.exercises.length > 0 ? config.exercises : FALLBACK.exercises;
+        const exercise = exercises[Math.floor(Math.random() * exercises.length)] as ExerciseType;
+        const difficulty: Difficulty = config.difficulty[exercise] ?? 'medium';
+        return generateQuestion(exercise, config.domain, difficulty);
+      }, previousPrompt),
     [config],
   );
 
@@ -54,14 +84,19 @@ export default function SessionScreen() {
   const [solved, setSolved] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(config.kind === 'timed' ? config.seconds : 0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isFinished, setIsFinished] = useState(false);
+  const [summary, setSummary] = useState<RoundSummary | null>(null);
+  const [missed, setMissed] = useState<MissedQuestion[]>([]);
+  /** The last skipped question, shown with its answer until the next correct one. */
+  const [revealed, setRevealed] = useState<MissedQuestion | null>(null);
   const [flash, setFlash] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const startedAt = useRef(Date.now());
   const pausedTotalMs = useRef(0);
   const pauseStart = useRef<number | null>(null);
   const solvedRef = useRef(0);
+  const skippedRef = useRef(0);
   const finishedRef = useRef(false);
+  const isFinished = summary !== null;
 
   useEffect(() => {
     solvedRef.current = solved;
@@ -82,23 +117,32 @@ export default function SessionScreen() {
     const effectiveElapsed = Math.max(1, Math.round(getEffectiveElapsedMs() / 1000));
     const finalElapsed = config.kind === 'timed' ? Math.min(config.seconds, effectiveElapsed) : effectiveElapsed;
     const count = solvedRef.current;
-    setIsFinished(true);
+    const attempted = count + skippedRef.current;
+    const previousBest = getStats().bestByKey[config.statKey]?.correct;
+    setSummary({
+      solved: count,
+      attempted,
+      elapsedSeconds: finalElapsed,
+      isNewBest: config.kind === 'timed' && previousBest !== undefined && count > previousBest,
+    });
+    // A round nobody played shouldn't land in the history or keep a streak alive.
+    if (attempted === 0) return;
     void recordRound({
       id: `${Date.now()}`,
       title: config.title,
       key: config.statKey,
       kind: config.kind,
       correct: count,
-      attempted: count,
+      attempted,
       elapsedSeconds: finalElapsed,
       createdAt: new Date().toISOString(),
     });
   }, [config, getEffectiveElapsedMs, recordRound]);
 
-  const openConfirm = () => {
+  const openConfirm = useCallback(() => {
     pauseStart.current = Date.now();
     setConfirming(true);
-  };
+  }, []);
 
   const closeConfirm = () => {
     if (pauseStart.current !== null) {
@@ -106,6 +150,14 @@ export default function SessionScreen() {
       pauseStart.current = null;
     }
     setConfirming(false);
+  };
+
+  const leave = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
   };
 
   const flashTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -157,6 +209,24 @@ export default function SessionScreen() {
     return () => sub.remove();
   }, [confirming, config.kind, config.seconds, finishRound, getEffectiveElapsedMs]);
 
+  // The header's close button and disabled swipe don't cover Android's back key.
+  useEffect(() => {
+    if (isFinished || Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      openConfirm();
+      return true;
+    });
+    return () => sub.remove();
+  }, [isFinished, openConfirm]);
+
+  // Screen readers get no other cue that the question has changed.
+  useEffect(() => {
+    if (isFinished) return;
+    AccessibilityInfo.announceForAccessibility(
+      revealed ? `Answer: ${revealed.answer}. Next: ${question.prompt}` : question.prompt,
+    );
+  }, [question, revealed, isFinished]);
+
   // Auto-advance: the instant the typed value is correct, score it and move on.
   useEffect(() => {
     if (isFinished || !input) return;
@@ -165,13 +235,14 @@ export default function SessionScreen() {
     solvedRef.current = nextSolved;
     setSolved(nextSolved);
     setFlash(true);
+    setRevealed(null);
     if (haptics) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
     if (flashTimeout.current) clearTimeout(flashTimeout.current);
     flashTimeout.current = setTimeout(() => setFlash(false), 160);
     setInput('');
-    setQuestion(next());
+    setQuestion(next(question.prompt));
   }, [input, question, isFinished, haptics, next]);
 
   const appendKey = (key: string) => {
@@ -185,55 +256,118 @@ export default function SessionScreen() {
     setInput((value) => `${value}${key}`.slice(0, 9));
   };
 
+  // Answers only count when correct, so this is the one way past a question
+  // the player can't solve, and the only thing that can lower their accuracy.
+  const skip = () => {
+    const entry = { prompt: question.prompt, answer: question.displayAnswer };
+    skippedRef.current += 1;
+    setMissed((list) => [...list, entry]);
+    setRevealed(entry);
+    if (haptics) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    }
+    setInput('');
+    setQuestion(next(question.prompt));
+  };
+
   const restart = () => {
     startedAt.current = Date.now();
     pausedTotalMs.current = 0;
     pauseStart.current = null;
     setConfirming(false);
-    setQuestion(next());
+    setQuestion(next(question.prompt));
     setInput('');
     setSolved(0);
+    setMissed([]);
+    setRevealed(null);
     setSecondsLeft(config.kind === 'timed' ? config.seconds : 0);
     setElapsedSeconds(0);
     if (flashTimeout.current) clearTimeout(flashTimeout.current);
     setFlash(false);
     solvedRef.current = 0;
+    skippedRef.current = 0;
     finishedRef.current = false;
-    setIsFinished(false);
+    setSummary(null);
   };
 
-  if (isFinished) {
+  if (summary) {
+    const pace = summary.solved > 0 ? `${(summary.elapsedSeconds / summary.solved).toFixed(1)}s` : '—';
     return (
-      <ScrollView
-        style={{ backgroundColor: palette.background }}
-        contentContainerStyle={{ padding: spacing.md, paddingBottom: Math.max(spacing.md, insets.bottom + spacing.sm), gap: spacing.md }}>
+      <View style={{ flex: 1, backgroundColor: palette.background }}>
         <Stack.Screen options={{ title: 'Results', headerLeft: () => null, headerRight: () => null }} />
-        <View style={{ borderRadius: radii.lg, padding: spacing.xl, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, alignItems: 'center', gap: spacing.sm }}>
-          <Text style={{ color: palette.textMuted, fontSize: 14, fontWeight: '700' }}>{config.title}</Text>
-          <Text style={{ color: palette.green, fontSize: 64, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{solved}</Text>
-          <Text style={{ color: palette.textMuted, fontSize: 16 }}>solved</Text>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ width: '100%', maxWidth: MAX_WIDTH, alignSelf: 'center', padding: spacing.md, gap: spacing.md }}>
+          <View style={{ borderRadius: radii.lg, padding: spacing.xl, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, alignItems: 'center', gap: spacing.sm }}>
+            <Text style={{ color: palette.textMuted, fontSize: 14, fontWeight: '700', textAlign: 'center' }}>{config.title}</Text>
+            <Text style={{ color: palette.green, fontSize: 64, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{summary.solved}</Text>
+            <Text style={{ color: palette.textMuted, fontSize: 16 }}>solved</Text>
+            {summary.isNewBest ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                <Ionicons name="trophy" size={18} color={palette.warning} />
+                <Text style={{ color: palette.text, fontSize: 16, fontWeight: '700' }}>New best!</Text>
+              </View>
+            ) : null}
+            {summary.attempted === 0 ? (
+              <Text style={{ color: palette.textMuted, fontSize: 14, textAlign: 'center' }}>
+                Nothing answered, so this round wasn't saved.
+              </Text>
+            ) : null}
+          </View>
+
+          {summary.attempted > 0 ? (
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Metric label="Accuracy" value={`${accuracy(summary.solved, summary.attempted)}%`} palette={palette} />
+              <Metric label="Per answer" value={pace} palette={palette} />
+              <Metric label="Skipped" value={`${missed.length}`} palette={palette} />
+            </View>
+          ) : null}
+
+          {missed.length > 0 ? (
+            <View>
+              <GroupLabel palette={palette}>Review what you skipped</GroupLabel>
+              <Card palette={palette}>
+                {missed.map((item, index) => (
+                  <Row
+                    key={index}
+                    palette={palette}
+                    label={item.prompt}
+                    separator={index < missed.length - 1}
+                    right={<Text style={{ color: palette.text, fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{item.answer}</Text>}
+                  />
+                ))}
+              </Card>
+            </View>
+          ) : null}
+        </ScrollView>
+
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: spacing.sm,
+            width: '100%',
+            maxWidth: MAX_WIDTH,
+            alignSelf: 'center',
+            paddingHorizontal: spacing.md,
+            paddingTop: spacing.sm,
+            paddingBottom: Math.max(spacing.md, insets.bottom + spacing.sm),
+          }}>
+          <Pressable
+            onPress={leave}
+            accessibilityRole="button"
+            accessibilityLabel="Done"
+            style={({ pressed }) => ({ flex: 1, height: 54, borderRadius: radii.pill, backgroundColor: palette.surfaceStrong, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
+            <Text style={{ color: palette.text, fontSize: 17, fontWeight: '700' }}>Done</Text>
+          </Pressable>
+          <Pressable
+            onPress={restart}
+            accessibilityRole="button"
+            accessibilityLabel="Play again"
+            style={({ pressed }) => ({ flex: 1, height: 54, borderRadius: radii.pill, backgroundColor: palette.green, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}>
+            <Text style={{ color: palette.onGreen, fontSize: 17, fontWeight: '700' }}>Play again</Text>
+          </Pressable>
         </View>
-        <Pressable
-          onPress={restart}
-          accessibilityRole="button"
-          accessibilityLabel="Play again"
-          style={({ pressed }) => ({ height: 54, borderRadius: radii.pill, backgroundColor: palette.green, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}>
-          <Text style={{ color: '#FFFFFF', fontSize: 17, fontWeight: '800' }}>Play again</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace('/(tabs)');
-            }
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Done"
-          style={({ pressed }) => ({ height: 54, borderRadius: radii.pill, backgroundColor: palette.surfaceStrong, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
-          <Text style={{ color: palette.text, fontSize: 17, fontWeight: '700' }}>Done</Text>
-        </Pressable>
-      </ScrollView>
+      </View>
     );
   }
 
@@ -242,7 +376,12 @@ export default function SessionScreen() {
       <Stack.Screen
         options={{
           title: 'Round',
-          headerLeft: () => null,
+          headerLeft: () =>
+            config.kind === 'unlimited' ? (
+              <Pressable onPress={finishRound} hitSlop={10} accessibilityLabel="Finish round" accessibilityRole="button" style={{ paddingHorizontal: spacing.xs }}>
+                <Text style={{ color: palette.blue, fontSize: 17, fontWeight: '600' }}>Finish</Text>
+              </Pressable>
+            ) : null,
           gestureEnabled: false,
           headerRight: () => (
             <Pressable
@@ -255,7 +394,17 @@ export default function SessionScreen() {
           ),
         }}
       />
-      <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: Math.max(spacing.md, insets.bottom + spacing.sm), gap: spacing.md }}>
+      <ScrollView
+        alwaysBounceVertical={false}
+        contentContainerStyle={{
+          flexGrow: 1,
+          width: '100%',
+          maxWidth: MAX_WIDTH,
+          alignSelf: 'center',
+          padding: spacing.md,
+          paddingBottom: Math.max(spacing.md, insets.bottom + spacing.sm),
+          gap: compact ? spacing.sm : spacing.md,
+        }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm }}>
           <Metric label={config.kind === 'timed' ? 'Time' : 'Elapsed'} value={config.kind === 'timed' ? formatSeconds(secondsLeft) : formatSeconds(elapsedSeconds)} palette={palette} />
           <Metric label="Solved" value={`${solved}`} palette={palette} />
@@ -263,27 +412,64 @@ export default function SessionScreen() {
 
         <View
           style={{
+            flex: 1,
             borderRadius: radii.lg,
-            padding: spacing.xl,
-            minHeight: 200,
+            padding: compact ? spacing.md : spacing.xl,
+            minHeight: compact ? 104 : 180,
             backgroundColor: flash ? `${palette.success}22` : palette.surface,
             borderWidth: 1,
             borderColor: flash ? palette.success : palette.border,
             alignItems: 'center',
             justifyContent: 'center',
-            gap: spacing.md,
+            gap: compact ? spacing.xs : spacing.md,
           }}>
           <Text style={{ color: palette.green, fontSize: 14, fontWeight: '700' }}>{getExercise(question.exercise).label}</Text>
-          <Text style={{ color: palette.text, fontSize: 46, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{question.prompt}</Text>
-        </View>
-
-        <View style={{ borderRadius: radii.lg, padding: spacing.md, backgroundColor: palette.surfaceStrong, minHeight: 64, justifyContent: 'center' }}>
-          <Text style={{ color: input ? palette.text : palette.textFaint, fontSize: 30, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
-            {input || 'Type answer'}
+          <Text
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            style={{ color: palette.text, fontSize: compact ? 38 : 46, fontWeight: '700', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+            {question.prompt}
           </Text>
+          {revealed ? (
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={{ position: 'absolute', left: spacing.md, right: spacing.md, bottom: spacing.xs, color: palette.textMuted, fontSize: 14, fontWeight: '600', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+              Skipped: {revealed.prompt} = {revealed.answer}
+            </Text>
+          ) : null}
         </View>
 
-        <Keypad palette={palette} onKey={appendKey} />
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <View style={{ flex: 1, borderRadius: radii.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: palette.surfaceStrong, minHeight: compact ? 52 : 64, justifyContent: 'center' }}>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={{ color: input ? palette.text : palette.textMuted, fontSize: compact ? 26 : 30, fontWeight: '700', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+              {input || 'Type answer'}
+            </Text>
+          </View>
+          <Pressable
+            onPress={skip}
+            accessibilityRole="button"
+            accessibilityLabel="Skip question"
+            style={({ pressed }) => ({
+              width: 76,
+              borderRadius: radii.lg,
+              backgroundColor: palette.surface,
+              borderWidth: 1,
+              borderColor: palette.border,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 2,
+              opacity: pressed ? 0.6 : 1,
+            })}>
+            <Ionicons name="play-skip-forward" size={18} color={palette.textMuted} />
+            <Text style={{ color: palette.textMuted, fontSize: 13, fontWeight: '700' }}>Skip</Text>
+          </Pressable>
+        </View>
+
+        <Keypad palette={palette} onKey={appendKey} keyHeight={compact ? 54 : 62} />
       </ScrollView>
 
       <CancelDialog
@@ -293,11 +479,7 @@ export default function SessionScreen() {
         onNewRound={restart}
         onQuit={() => {
           closeConfirm();
-          if (router.canGoBack()) {
-            router.back();
-          } else {
-            router.replace('/(tabs)');
-          }
+          leave();
         }}
       />
     </View>
@@ -327,7 +509,7 @@ function CancelDialog({
         <Pressable
           onPress={() => {}}
           style={{ width: '100%', maxWidth: 340, borderRadius: radii.lg, backgroundColor: palette.surface, padding: spacing.lg, gap: spacing.md }}>
-          <Text style={{ color: palette.text, fontSize: 18, fontWeight: '800', textAlign: 'center' }}>Cancel round?</Text>
+          <Text style={{ color: palette.text, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>Cancel round?</Text>
           <Text style={{ color: palette.textMuted, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
             Your progress will be lost. Are you sure you want to cancel the current round?
           </Text>
@@ -368,7 +550,7 @@ function DialogButton({
         backgroundColor: filled ? color : palette.surfaceStrong,
         opacity: pressed ? 0.75 : 1,
       })}>
-      <Text style={{ color: filled ? '#FFFFFF' : color, fontSize: 16, fontWeight: '700' }}>{label}</Text>
+      <Text style={{ color: filled ? palette.onGreen : color, fontSize: 16, fontWeight: '700' }}>{label}</Text>
     </Pressable>
   );
 }
@@ -379,8 +561,8 @@ function Metric({ label, value, palette }: { label: string; value: string; palet
       accessible={true}
       accessibilityLabel={`${label}: ${value}`}
       style={{ flex: 1, borderRadius: radii.md, padding: spacing.sm, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}>
-      <Text style={{ color: palette.textFaint, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: palette.text, fontSize: 18, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{value}</Text>
+      <Text style={{ color: palette.textMuted, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: palette.text, fontSize: 18, fontWeight: '700', textAlign: 'center', fontVariant: ['tabular-nums'] }}>{value}</Text>
     </View>
   );
 }

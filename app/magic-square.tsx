@@ -119,7 +119,7 @@ export default function MagicSquareScreen() {
         <Text style={{ color: palette.textMuted, fontSize: 15, fontWeight: '600', textAlign: 'center' }}>
           Every row, column and diagonal must add up to
         </Text>
-        <Text style={{ color: palette.text, fontSize: 40, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+        <Text style={{ color: palette.text, fontSize: 40, fontWeight: '700', textAlign: 'center', fontVariant: ['tabular-nums'] }}>
           {puzzle.target}
         </Text>
         <Text style={{ color: palette.textMuted, fontSize: 14, textAlign: 'center' }}>
@@ -165,7 +165,7 @@ export default function MagicSquareScreen() {
             })}
             <Text
               accessibilityLabel={`Row ${r + 1} sum: ${lineSum(cells, line) ?? 'incomplete'}`}
-              style={{ width: 36, textAlign: 'center', fontWeight: '800', color: sumColor(lineSum(cells, line)), fontVariant: ['tabular-nums'] }}>
+              style={{ width: 36, textAlign: 'center', fontWeight: '700', color: sumColor(lineSum(cells, line)), fontVariant: ['tabular-nums'] }}>
               {lineSum(cells, line) ?? '·'}
             </Text>
           </View>
@@ -175,7 +175,7 @@ export default function MagicSquareScreen() {
             <Text
               key={c}
               accessibilityLabel={`Column ${c + 1} sum: ${lineSum(cells, line) ?? 'incomplete'}`}
-              style={{ width: cellSize, textAlign: 'center', fontWeight: '800', color: sumColor(lineSum(cells, line)), fontVariant: ['tabular-nums'] }}>
+              style={{ width: cellSize, textAlign: 'center', fontWeight: '700', color: sumColor(lineSum(cells, line)), fontVariant: ['tabular-nums'] }}>
               {lineSum(cells, line) ?? '·'}
             </Text>
           ))}
@@ -196,7 +196,7 @@ export default function MagicSquareScreen() {
 
       {solved ? (
         <View style={{ gap: spacing.md, alignItems: 'center' }}>
-          <Text style={{ color: palette.green, fontSize: 22, fontWeight: '800' }}>Solved in {formatSeconds(elapsed)}!</Text>
+          <Text style={{ color: palette.green, fontSize: 22, fontWeight: '700' }}>Solved in {formatSeconds(elapsed)}!</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="New puzzle"
@@ -211,8 +211,8 @@ export default function MagicSquareScreen() {
               paddingVertical: spacing.md,
               opacity: pressed ? 0.85 : 1,
             })}>
-            <Ionicons name="refresh" size={18} color="#FFFFFF" />
-            <Text style={{ color: '#FFFFFF', fontSize: 17, fontWeight: '800' }}>New puzzle</Text>
+            <Ionicons name="refresh" size={18} color={palette.onGreen} />
+            <Text style={{ color: palette.onGreen, fontSize: 17, fontWeight: '700' }}>New puzzle</Text>
           </Pressable>
         </View>
       ) : (

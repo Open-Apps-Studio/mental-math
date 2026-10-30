@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,14 +15,15 @@ export default function TrickListScreen() {
   const favorites = useFavorites();
   const isFavorites = categoryId === 'favorites';
 
-  const title = isFavorites ? 'Favorites' : getCategory(categoryId)?.title ?? 'Tricks';
-  const emoji = isFavorites ? '⭐' : getCategory(categoryId)?.emoji ?? '💡';
-  const blurb = isFavorites ? 'Your saved tricks' : getCategory(categoryId)?.blurb ?? 'Tricks';
+  const category = getCategory(categoryId);
+  const title = isFavorites ? 'Favorites' : category?.title ?? 'Tricks';
+  const icon = isFavorites ? 'star' : category?.icon ?? 'lightbulb-outline';
+  const blurb = isFavorites ? 'Your saved tricks' : category?.blurb ?? 'Tricks';
 
   // Rows as [categoryId, trick] so favorites can route back to the source category.
   const rows: { catId: string; trick: Trick }[] = isFavorites
     ? allTricks().filter(({ trick }) => favorites.has(trick.id)).map(({ category, trick }) => ({ catId: category.id, trick }))
-    : (getCategory(categoryId)?.tricks ?? []).map((trick) => ({ catId: categoryId!, trick }));
+    : (category?.tricks ?? []).map((trick) => ({ catId: categoryId!, trick }));
 
   return (
     <ScrollView
@@ -48,11 +49,11 @@ export default function TrickListScreen() {
         style={{
           height: 84,
           borderRadius: radii.lg,
-          backgroundColor: palette.green,
+          backgroundColor: palette.greenSoft,
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-        <Text style={{ fontSize: 40 }}>{emoji}</Text>
+        <MaterialCommunityIcons name={icon} size={44} color={palette.green} />
       </View>
 
       <View>
@@ -78,7 +79,6 @@ export default function TrickListScreen() {
                 separator={index < rows.length - 1}
                 onPress={() => router.push({ pathname: '/trick', params: { category: catId, id: trick.id } })}
                 chevron
-                left={<View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: palette.green }} />}
               />
             ))}
           </Card>

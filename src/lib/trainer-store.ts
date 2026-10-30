@@ -22,9 +22,18 @@ type Selection = {
   domain: NumberDomain | null;
   selected: ExerciseType[];
   difficulty: Record<string, Difficulty>;
+  /** Round length in seconds; 0 means no time limit. */
+  seconds: number;
 };
 
-let selection: Selection = { domain: null, selected: [], difficulty: {} };
+export const ROUND_LENGTHS = [
+  { value: '30', label: '30s' },
+  { value: '60', label: '1 min' },
+  { value: '120', label: '2 min' },
+  { value: '0', label: 'No limit' },
+];
+
+let selection: Selection = { domain: null, selected: [], difficulty: {}, seconds: 60 };
 let pendingSession: SessionConfig | null = null;
 const listeners = new Set<() => void>();
 
@@ -40,7 +49,7 @@ function subscribe(listener: () => void): () => void {
 /** Begin (or resume) configuring a domain. Resets when switching domains. */
 export function openDomain(domain: NumberDomain): void {
   if (selection.domain !== domain) {
-    selection = { domain, selected: [], difficulty: {} };
+    selection = { ...selection, domain, selected: [], difficulty: {} };
     emit();
   }
 }
@@ -56,6 +65,11 @@ export function toggleExercise(exercise: ExerciseType): void {
 
 export function setDifficulty(exercise: ExerciseType, difficulty: Difficulty): void {
   selection = { ...selection, difficulty: { ...selection.difficulty, [exercise]: difficulty } };
+  emit();
+}
+
+export function setRoundLength(seconds: number): void {
+  selection = { ...selection, seconds };
   emit();
 }
 

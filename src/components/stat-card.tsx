@@ -5,17 +5,14 @@ type Props = {
   label: string;
   value: string;
   palette: Palette;
-  tone?: keyof Pick<Palette, 'blue' | 'green' | 'purple' | 'orange' | 'primary'>;
 };
 
-export function StatCard({ label, value, palette, tone = 'primary' }: Props) {
-  const color = palette[tone];
-
+export function StatCard({ label, value, palette }: Props) {
   return (
     <View
       style={{
-        flex: 1,
-        minWidth: 145,
+        flexGrow: 1,
+        flexBasis: '45%',
         borderRadius: radii.lg,
         padding: spacing.md,
         backgroundColor: palette.surface,
@@ -23,8 +20,8 @@ export function StatCard({ label, value, palette, tone = 'primary' }: Props) {
         borderColor: palette.border,
         gap: spacing.xs,
       }}>
-      <Text style={{ color: palette.textMuted, fontSize: 13, fontWeight: '700' }}>{label}</Text>
-      <Text style={{ color, fontSize: 28, fontWeight: '900', fontVariant: ['tabular-nums'] }}>{value}</Text>
+      <Text style={{ color: palette.textMuted, fontSize: 13, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ color: palette.text, fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{value}</Text>
     </View>
   );
 }

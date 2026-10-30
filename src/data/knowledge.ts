@@ -1,6 +1,8 @@
 // Mental-math "tricks" library shown in the Knowledge tab.
 // Original copy, grouped by operation. Trick ids are stable for favoriting.
 
+import type { IconName } from '@/components/exercise-icon';
+
 export type Trick = {
   id: string;
   title: string;
@@ -14,8 +16,9 @@ export type Trick = {
 export type TrickCategory = {
   id: string;
   title: string;
-  /** Emoji shown in the banner + category card. */
-  emoji: string;
+  /** Shown in the trick list banner. */
+  icon: IconName;
+  /** Shown on the category card. */
   symbol: string;
   blurb: string;
   tricks: Trick[];
@@ -25,9 +28,9 @@ export const CATEGORIES: TrickCategory[] = [
   {
     id: 'addition',
     title: 'Addition',
-    emoji: '➕',
+    icon: 'plus',
     symbol: '+',
-    blurb: 'Cool addition tricks',
+    blurb: 'Addition tricks',
     tricks: [
       {
         id: 'add-left-to-right',
@@ -69,9 +72,9 @@ export const CATEGORIES: TrickCategory[] = [
   {
     id: 'subtraction',
     title: 'Subtraction',
-    emoji: '➖',
+    icon: 'minus',
     symbol: '−',
-    blurb: 'Cool subtraction tricks',
+    blurb: 'Subtraction tricks',
     tricks: [
       {
         id: 'sub-split-one',
@@ -134,9 +137,9 @@ export const CATEGORIES: TrickCategory[] = [
   {
     id: 'multiplication',
     title: 'Multiplication',
-    emoji: '✖️',
+    icon: 'close',
     symbol: '×',
-    blurb: 'Cool multiplication tricks',
+    blurb: 'Multiplication tricks',
     tricks: [
       {
         id: 'mul-x2',
@@ -290,9 +293,9 @@ export const CATEGORIES: TrickCategory[] = [
   {
     id: 'division',
     title: 'Division',
-    emoji: '➗',
+    icon: 'division',
     symbol: '÷',
-    blurb: 'Cool division tricks',
+    blurb: 'Division tricks',
     tricks: [
       {
         id: 'div-by-2',
@@ -362,9 +365,9 @@ export const CATEGORIES: TrickCategory[] = [
   {
     id: 'squares',
     title: 'Squares',
-    emoji: '🟩',
+    icon: 'exponent',
     symbol: 'x²',
-    blurb: 'Cool squaring tricks',
+    blurb: 'Squaring tricks',
     tricks: [
       {
         id: 'sq-end-5',

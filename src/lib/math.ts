@@ -22,7 +22,6 @@ export type RoundKind = 'timed' | 'unlimited';
 export type ExerciseDef = {
   id: ExerciseType;
   label: string;
-  symbol: string;
 };
 
 export type DifficultyDef = {
@@ -42,15 +41,15 @@ export type Question = {
 };
 
 export const EXERCISES: ExerciseDef[] = [
-  { id: 'add', label: 'Addition', symbol: '+' },
-  { id: 'subtract', label: 'Subtraction', symbol: '−' },
-  { id: 'multiply', label: 'Multiplication', symbol: '×' },
-  { id: 'divide', label: 'Division', symbol: '÷' },
-  { id: 'square', label: 'Squares', symbol: 'x²' },
-  { id: 'sqrt', label: 'Square roots', symbol: '√x' },
-  { id: 'fraction', label: 'Fractions', symbol: '⁄' },
-  { id: 'percent', label: 'Percentages', symbol: '%' },
-  { id: 'modulo', label: 'Modulo', symbol: 'M' },
+  { id: 'add', label: 'Addition' },
+  { id: 'subtract', label: 'Subtraction' },
+  { id: 'multiply', label: 'Multiplication' },
+  { id: 'divide', label: 'Division' },
+  { id: 'square', label: 'Squares' },
+  { id: 'sqrt', label: 'Square roots' },
+  { id: 'fraction', label: 'Fractions' },
+  { id: 'percent', label: 'Percentages' },
+  { id: 'modulo', label: 'Modulo' },
 ];
 
 export const DIFFICULTIES: DifficultyDef[] = [
@@ -76,6 +75,52 @@ const RANGES: Record<NumberDomain, Record<Difficulty, [number, number]>> = {
   money: { easy: [1, 20], medium: [3, 99], hard: [10, 499], superhard: [25, 1999] },
   times: { easy: [2, 9], medium: [2, 12], hard: [2, 15], superhard: [6, 20] },
 };
+
+// The number being squared, or the answer to a square root.
+const ROOT_RANGES: Record<Difficulty, [number, number]> = {
+  easy: [2, 15],
+  medium: [5, 25],
+  hard: [11, 50],
+  superhard: [21, 99],
+};
+
+// "a/b of N" fractions, all in lowest terms.
+const FRACTIONS: [number, number][] = [
+  [1, 2],
+  [1, 3],
+  [2, 3],
+  [1, 4],
+  [3, 4],
+  [1, 5],
+  [2, 5],
+  [3, 5],
+  [4, 5],
+  [1, 6],
+  [5, 6],
+  [1, 8],
+  [3, 8],
+  [5, 8],
+  [7, 8],
+  [1, 10],
+  [3, 10],
+  [7, 10],
+  [9, 10],
+];
+
+/** [percent, base] for a whole-number percent question at this difficulty. */
+function wholePercent(difficulty: Difficulty): [number, number] {
+  switch (difficulty) {
+    case 'easy':
+      return [pick([10, 20, 25, 50]), 20 * randInt(1, 10)];
+    case 'hard':
+      // A multiple of 5 percent of a multiple of 20 is always whole.
+      return [5 * randInt(1, 19), 20 * randInt(3, 50)];
+    case 'superhard':
+      return [randInt(3, 97), 100 * randInt(2, 30)];
+    default:
+      return [pick([5, 10, 15, 20, 25, 40, 50, 75]), pick([20, 40, 60, 80, 120, 160, 200, 400])];
+  }
+}
 
 export function generateQuestion(
   exercise: ExerciseType,
@@ -114,29 +159,34 @@ export function generateQuestion(
       return build(`${fmt(dividend, safeDomain)} ÷ ${divisor}`, quotient, exercise, safeDomain);
     }
     case 'square': {
-      const base = Math.max(2, Math.round(Math.sqrt(hi)));
-      const n = randInt(Math.max(2, Math.round(Math.sqrt(lo))), base);
+      const n = randInt(...ROOT_RANGES[safeDifficulty]);
       return build(`${n}²`, n * n, 'square', 'natural');
     }
     case 'sqrt': {
-      const base = Math.max(2, Math.round(Math.sqrt(hi)));
-      const minN = Math.max(2, Math.round(Math.sqrt(lo)));
-      const n = randInt(minN, Math.max(minN, base));
+      const n = randInt(...ROOT_RANGES[safeDifficulty]);
       return build(`√${n * n}`, n, 'sqrt', 'natural');
     }
     case 'fraction': {
       // "a/b of N" with an integer answer.
-      const denom = pick([2, 3, 4, 5, 6, 8, 10]);
-      const numer = randInt(1, denom - 1);
+      const [numer, denom] = pick(FRACTIONS);
       const multiple = randInt(2, Math.max(3, Math.round(hi / denom)));
       const base = denom * multiple;
       return build(`${numer}/${denom} of ${base}`, (numer * base) / denom, 'fraction', 'natural');
     }
     case 'percent': {
-      const percent = pick([5, 10, 15, 20, 25, 40, 50, 75]);
-      const base = money ? round2(randInt(lo, hi) + 0.5) : pick([20, 40, 60, 80, 120, 160, 200, 400]);
-      const result = round2((percent / 100) * base);
-      return build(`${percent}% of ${fmt(base, safeDomain)}`, result, 'percent', safeDomain);
+      if (money) {
+        const percent = pick([5, 10, 15, 20, 25, 40, 50, 75]);
+        const base = round2(randInt(lo, hi) + 0.5);
+        return build(`${percent}% of ${fmt(base, safeDomain)}`, round2((percent / 100) * base), 'percent', safeDomain);
+      }
+      if (safeDomain === 'decimal') {
+        // Tens of percent keep a one-decimal base within two decimal places.
+        const percent = pick(safeDifficulty === 'easy' ? [10, 20, 50] : [10, 20, 30, 40, 50, 60, 70, 80, 90]);
+        const base = operand(safeDomain, lo, hi);
+        return build(`${percent}% of ${fmt(base, safeDomain)}`, (percent / 100) * base, 'percent', safeDomain);
+      }
+      const [percent, base] = wholePercent(safeDifficulty);
+      return build(`${percent}% of ${base}`, (percent * base) / 100, 'percent', safeDomain);
     }
     case 'modulo': {
       const a = randInt(lo, hi);
@@ -163,6 +213,15 @@ export function formatSeconds(seconds: number): string {
   const mins = Math.floor(safe / 60);
   const secs = safe % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/** Re-rolls so a round never shows the same prompt twice in a row. */
+export function nextQuestion(generate: () => Question, previousPrompt?: string): Question {
+  let question = generate();
+  for (let i = 0; i < 20 && question.prompt === previousPrompt; i++) {
+    question = generate();
+  }
+  return question;
 }
 
 /** Build a question outside the domain generators (used by trick drills). */
